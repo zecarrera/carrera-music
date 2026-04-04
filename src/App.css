@@ -1,0 +1,65 @@
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  padding: 16px 16px 0;
+}
+
+.app-header h1 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #aaa;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #222;
+  margin-top: 12px;
+}
+
+.tab-btn {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #888;
+  font-size: 0.85rem;
+  padding: 10px 8px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab-btn.active {
+  color: #f0f0f0;
+  border-bottom-color: #1db954;
+}
+
+.tab-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.note {
+  font-size: 0.78rem;
+  color: #666;
+  background: #1a1a1a;
+  border-left: 3px solid #333;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.note.warn {
+  border-left-color: #f0a500;
+  color: #b8860b;
+}

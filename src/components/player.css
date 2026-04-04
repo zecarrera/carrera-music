@@ -1,0 +1,160 @@
+.player-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.track-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.track-info.rich {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.track-info .thumb {
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.track-index {
+  display: block;
+  font-size: 0.72rem;
+  color: #666;
+}
+
+.track-title {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #f0f0f0;
+  line-height: 1.3;
+}
+
+.track-channel {
+  display: block;
+  font-size: 0.78rem;
+  color: #888;
+}
+
+.yt-container {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #111;
+  min-height: 200px;
+}
+
+/* Allow the YT iframe to fill the container */
+.yt-container iframe {
+  display: block;
+  width: 100%;
+}
+
+.state-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #1e1e1e;
+  color: #888;
+  border: 1px solid #333;
+  align-self: flex-start;
+}
+
+.state-badge[data-state='playing'] {
+  background: #0f2d1f;
+  color: #1db954;
+  border-color: #1db954;
+}
+
+.state-badge[data-state='paused'] {
+  background: #1e1a0f;
+  color: #f0a500;
+  border-color: #f0a500;
+}
+
+.state-badge[data-state='buffering'] {
+  background: #0d1e2d;
+  color: #4a9eff;
+  border-color: #4a9eff;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.controls button {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  padding: 10px 4px;
+}
+
+.search-form {
+  display: flex;
+  gap: 8px;
+}
+
+.search-form input {
+  flex: 1;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #f0f0f0;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  outline: none;
+  font-family: inherit;
+  -webkit-appearance: none;
+}
+
+.search-form input:focus {
+  border-color: #555;
+}
+
+.search-form button {
+  flex-shrink: 0;
+}
+
+.loading {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+}
+
+.log-panel {
+  margin-top: 4px;
+}
+
+.log-panel h3 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #555;
+  margin: 0 0 6px;
+}
+
+.log-empty {
+  font-size: 0.8rem;
+  color: #444;
+  margin: 0;
+}
+
+.log-entry {
+  font-size: 0.75rem;
+  font-family: 'SF Mono', 'Menlo', monospace;
+  color: #888;
+  padding: 2px 0;
+  border-bottom: 1px solid #1a1a1a;
+  line-height: 1.4;
+}
