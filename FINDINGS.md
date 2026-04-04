@@ -80,6 +80,46 @@ This is consistent with the Non-Goal stated in the initial concept: *"Guaranteed
 ## Decision Gate: Go for Phase B ✅
 
 - YouTube IFrame API works reliably on iOS Safari for in-app playback. ✅
-- YouTube Data API enables search and rich metadata. ✅  
-- Lock screen limitation is accepted per Non-Goals. ✅
+- YouTube Data API enables search and rich metadata. ✅
+- Lock screen limitation is accepted per Non-Goals for MVP. ✅
 - Recommended architecture is clear: Data API for search + IFrame API for playback. ✅
+
+---
+
+## Lock-Screen Alternatives Analysis (Post-MVP)
+
+Lock-screen playback was re-evaluated as a must-have for the final product. The following options were researched.
+
+### Root Technical Requirement
+
+iOS Safari only keeps audio playing when the screen is locked if it is driven by a native **HTML5 `<audio>` element**. Iframes (including YouTube embeds) are fully suspended by iOS on lock. The `navigator.mediaSession` API provides lock-screen controls but cannot prevent iframe suspension — it only works when a native `<audio>` element is actively playing.
+
+### Options Evaluated
+
+| Option | Lock-Screen | Catalog | User Subscription Required | Viable? |
+|--------|-------------|---------|---------------------------|---------|
+| YouTube IFrame API | ❌ | Huge | No | MVP only |
+| Spotify Web Playback SDK | ❌ | 70M+ | Yes (Premium) | No — officially unsupported on iOS Safari |
+| Deezer Web SDK | ❌ | 70M+ | Yes | No — no iOS Safari support |
+| Apple MusicKit JS | ✅ | 100M+ | Yes (Apple Music) | Yes — but narrows user base |
+| SoundCloud API + `<audio>` | ✅ | 300M+ | No | Yes — best fit for final product |
+| Self-hosted audio + `<audio>` | ✅ | Self-hosted | No | Yes — requires content licensing |
+| Bandcamp API + `<audio>` | ✅ | Millions (indie) | No | Yes — indie-focused niche |
+
+### Recommendation for Final Product
+
+**SoundCloud as primary source.** The SoundCloud API returns direct streamable audio URLs which can be played via `<audio>`, unlocking full iOS lock-screen and background playback. No user subscription required. 300M+ track catalog including both major and independent artists.
+
+**Implementation path:**
+1. SoundCloud API for track search and metadata.
+2. Stream URL fetched per track, played via native `<audio>`.
+3. `navigator.mediaSession` registers lock-screen controls (play, pause, next, prev, seek).
+4. PWA manifest updated with `"categories": ["music"]`.
+
+**Key risk:** SoundCloud API requires developer approval and has had access policy changes historically. A thin backend proxy may be needed to attach the API key server-side (avoiding client-side key exposure) and handle stream URL redirects.
+
+**Apple MusicKit JS** is a strong secondary option for users with Apple Music subscriptions — native iOS playback, massive catalog, full lock-screen support. Worth adding as an optional premium source in Phase E.
+
+### MVP Decision
+
+Lock-screen limitation is **accepted for the MVP** (Phase B/C) and will be revisited in Phase E when SoundCloud integration is evaluated. The provider abstraction layer built in Phase C will allow swapping or layering sources without rewriting player and playlist logic.
