@@ -123,3 +123,46 @@ iOS Safari only keeps audio playing when the screen is locked if it is driven by
 ### MVP Decision
 
 Lock-screen limitation is **accepted for the MVP** (Phase B/C) and will be revisited in Phase E when SoundCloud integration is evaluated. The provider abstraction layer built in Phase C will allow swapping or layering sources without rewriting player and playlist logic.
+
+---
+
+## Phase C Findings: Audius + Native Audio — Lock-Screen Playback ✅
+
+**Branch:** `phase-c-audius`  
+**Deployment:** https://carrera-music.vercel.app  
+**Tested on:** iPhone / iOS Safari
+
+### Approach
+
+- **Audius API** for search and track metadata (`/v1/tracks/search`)
+- **Direct stream URL** per track (`/v1/tracks/{id}/stream`)
+- **Native HTML5 `<audio>` element** for playback (no iframe)
+- **Media Session API** for lock-screen controls (play, pause, next, prev)
+
+### Test Results
+
+| Test | Result |
+|------|--------|
+| Track search | ✅ Works — no API key required |
+| Playback initiation (user tap) | ✅ Works |
+| Play / Pause / Seek / Prev / Next | ✅ Works |
+| **Phone locked while playing** | ✅ **Audio continues** |
+| **Tab backgrounded (switch apps)** | ✅ **Audio continues** |
+| Lock-screen controls (Media Session) | ✅ Play/pause/skip visible on lock screen |
+| Resume after returning to tab | ✅ Clean |
+
+### Root Cause Confirmed
+
+The YouTube iframe was the blocker — iOS suspends iframes on lock. Native `<audio>` is treated as a proper audio session by iOS and continues playing. Media Session API successfully surfaces controls on the lock screen.
+
+### Audius Catalog Notes
+
+- Catalog is indie/electronic/hip-hop focused. Mainstream pop/rock may have limited coverage.
+- No API key, no account, no approval required — just include `app_name` query param.
+- Decentralized network: host is resolved dynamically from `https://api.audius.co`.
+
+### Decision: Phase C is the MVP ✅
+
+Audius + native `<audio>` solves the lock-screen requirement. The existing app architecture (search → playlists → player) carries forward unchanged. Phase C branch (`phase-c-audius`) is now the primary development branch.
+
+**Next:** Phase D — optional account sync and cloud persistence.
