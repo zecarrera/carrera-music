@@ -30,9 +30,6 @@ function AppShell() {
 
   return (
     <div className="app-shell">
-      {/* Hidden YT player mount point — must always be in DOM */}
-      <div id="yt-player-mount" style={{ display: 'none' }} />
-
       <div className="view-area">
         {activeView === 'search' && <SearchView />}
         {activeView === 'library' && <LibraryView onOpenPlaylist={handleOpenPlaylist} />}

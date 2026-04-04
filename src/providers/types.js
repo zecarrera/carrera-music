@@ -8,4 +8,5 @@
 
 export const PROVIDERS = {
   YOUTUBE: 'youtube',
+  AUDIUS: 'audius',
 }

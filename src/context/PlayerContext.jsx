@@ -1,16 +1,14 @@
 import { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react'
-import { useYouTubePlayer } from '../hooks/useYouTubePlayer.js'
+import { useAudioPlayer, AUDIO_STATE } from '../hooks/useAudioPlayer.js'
 import { useMediaSession } from '../hooks/useMediaSession.js'
-
-// YT player state codes
-const YT_STATE = { UNSTARTED: -1, ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3 }
+import { audiusProvider } from '../providers/audiusProvider.js'
+import { PROVIDERS } from '../providers/types.js'
 
 const initialState = {
   currentTrack: null,
   queue: [],
   queueIndex: 0,
-  ytState: YT_STATE.UNSTARTED,
-  // Set to true when iOS pauses us in background/lock so we can show resume UX
+  audioState: AUDIO_STATE.IDLE,
   needsResume: false,
 }
 
@@ -18,8 +16,8 @@ function reducer(state, action) {
   switch (action.type) {
     case 'PLAY_QUEUE':
       return { ...state, queue: action.queue, queueIndex: action.index ?? 0, currentTrack: action.queue[action.index ?? 0], needsResume: false }
-    case 'SET_YT_STATE':
-      return { ...state, ytState: action.state, needsResume: action.needsResume ?? state.needsResume }
+    case 'SET_AUDIO_STATE':
+      return { ...state, audioState: action.state, needsResume: action.needsResume ?? state.needsResume }
     case 'SET_NEEDS_RESUME':
       return { ...state, needsResume: action.value }
     case 'SET_INDEX': {
@@ -37,38 +35,52 @@ export function PlayerProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const wasPlayingRef = useRef(false)
 
-  const handleStateChange = useCallback((ytState) => {
-    if (ytState === YT_STATE.PLAYING) wasPlayingRef.current = true
+  const handleStateChange = useCallback((audioState) => {
+    if (audioState === AUDIO_STATE.PLAYING) wasPlayingRef.current = true
 
-    // Detect iOS-induced pause: was playing, now paused, and page is hidden/visible
+    // Detect iOS-induced pause: was playing, now paused, page returned to foreground
     const iosInducedPause =
-      ytState === YT_STATE.PAUSED && wasPlayingRef.current && document.visibilityState === 'visible'
+      audioState === AUDIO_STATE.PAUSED && wasPlayingRef.current && document.visibilityState === 'visible'
 
     dispatch({
-      type: 'SET_YT_STATE',
-      state: ytState,
+      type: 'SET_AUDIO_STATE',
+      state: audioState,
       needsResume: iosInducedPause ? true : undefined,
     })
   }, [])
 
   const { loadTrack, play, pause, seekTo, getCurrentTime, getDuration } =
-    useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: handleStateChange })
+    useAudioPlayer({ onStateChange: handleStateChange })
 
-  // Load new track whenever currentTrack changes
+  // Resolve stream URL and load whenever currentTrack changes
   useEffect(() => {
-    if (state.currentTrack) loadTrack(state.currentTrack.id)
+    if (!state.currentTrack) return
+
+    async function load() {
+      let url
+      if (state.currentTrack.providerId === PROVIDERS.AUDIUS) {
+        url = audiusProvider.getStreamUrl(state.currentTrack)
+      } else {
+        // Fallback: other providers not yet supported in this branch
+        console.warn('No stream URL resolver for provider:', state.currentTrack.providerId)
+        return
+      }
+      loadTrack(url)
+    }
+
+    load()
   }, [state.currentTrack]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detect returning from background / lock screen
   useEffect(() => {
     function handleVisibility() {
-      if (document.visibilityState === 'visible' && wasPlayingRef.current && state.ytState === YT_STATE.PAUSED) {
+      if (document.visibilityState === 'visible' && wasPlayingRef.current && state.audioState === AUDIO_STATE.PAUSED) {
         dispatch({ type: 'SET_NEEDS_RESUME', value: true })
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
-  }, [state.ytState])
+  }, [state.audioState])
 
   const playQueue = useCallback((queue, index = 0) => {
     wasPlayingRef.current = false
@@ -94,7 +106,7 @@ export function PlayerProvider({ children }) {
     dispatch({ type: 'SET_NEEDS_RESUME', value: false })
   }, [])
 
-  const isPlaying = state.ytState === YT_STATE.PLAYING || state.ytState === YT_STATE.BUFFERING
+  const isPlaying = state.audioState === AUDIO_STATE.PLAYING || state.audioState === AUDIO_STATE.LOADING
 
   useMediaSession({
     track: state.currentTrack,
@@ -110,7 +122,7 @@ export function PlayerProvider({ children }) {
       currentTrack: state.currentTrack,
       queue: state.queue,
       queueIndex: state.queueIndex,
-      ytState: state.ytState,
+      audioState: state.audioState,
       isPlaying,
       needsResume: state.needsResume,
       playQueue,

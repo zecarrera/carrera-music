@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { youtubeProvider } from '../providers/youtubeProvider.js'
+import { audiusProvider } from '../providers/audiusProvider.js'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import SearchBar from '../components/SearchBar.jsx'
 import TrackItem from '../components/TrackItem.jsx'
@@ -17,7 +17,7 @@ export default function SearchView() {
     setError(null)
     setSearched(true)
     try {
-      const tracks = await youtubeProvider.search(query)
+      const tracks = await audiusProvider.search(query)
       setResults(tracks)
     } catch (e) {
       setError(e.message)
