@@ -1,37 +1,59 @@
 import { useState } from 'react'
-import YouTubeIFramePlayer from './components/YouTubeIFramePlayer'
-import YouTubeDataPlayer from './components/YouTubeDataPlayer'
+import { PlayerProvider } from './context/PlayerContext.jsx'
+import { PlaylistProvider } from './context/PlaylistContext.jsx'
+import SearchView from './views/SearchView.jsx'
+import LibraryView from './views/LibraryView.jsx'
+import PlaylistView from './views/PlaylistView.jsx'
+import PlayerBar from './components/PlayerBar.jsx'
+import BottomNav from './components/BottomNav.jsx'
+import ResumeOverlay from './components/ResumeOverlay.jsx'
 import './App.css'
 
-const TABS = [
-  { id: 'iframe', label: 'IFrame API' },
-  { id: 'data-api', label: 'Data API' },
-]
+function AppShell() {
+  const [activeView, setActiveView] = useState('search')
+  const [openPlaylistId, setOpenPlaylistId] = useState(null)
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState('iframe')
+  function handleNavigate(view) {
+    setActiveView(view)
+    setOpenPlaylistId(null)
+  }
+
+  function handleOpenPlaylist(id) {
+    setOpenPlaylistId(id)
+    setActiveView('playlist')
+  }
+
+  function handleBackFromPlaylist() {
+    setOpenPlaylistId(null)
+    setActiveView('library')
+  }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>Music Spike</h1>
-        <nav className="tabs">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </header>
+    <div className="app-shell">
+      {/* Hidden YT player mount point — must always be in DOM */}
+      <div id="yt-player-mount" style={{ display: 'none' }} />
 
-      <main className="tab-content">
-        {activeTab === 'iframe' && <YouTubeIFramePlayer />}
-        {activeTab === 'data-api' && <YouTubeDataPlayer />}
-      </main>
+      <div className="view-area">
+        {activeView === 'search' && <SearchView />}
+        {activeView === 'library' && <LibraryView onOpenPlaylist={handleOpenPlaylist} />}
+        {activeView === 'playlist' && openPlaylistId && (
+          <PlaylistView playlistId={openPlaylistId} onBack={handleBackFromPlaylist} />
+        )}
+      </div>
+
+      <PlayerBar />
+      <BottomNav activeView={activeView === 'playlist' ? 'library' : activeView} onNavigate={handleNavigate} />
+      <ResumeOverlay />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <PlaylistProvider>
+      <PlayerProvider>
+        <AppShell />
+      </PlayerProvider>
+    </PlaylistProvider>
   )
 }

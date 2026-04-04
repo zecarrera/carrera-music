@@ -1,0 +1,24 @@
+.search-view { display: flex; flex-direction: column; height: 100%; }
+
+.search-results { flex: 1; overflow-y: auto; }
+
+.search-status {
+  text-align: center;
+  padding: 32px 16px;
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.search-status.error { color: #e05252; }
+
+.search-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 32px;
+  text-align: center;
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}

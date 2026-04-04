@@ -1,0 +1,138 @@
+.track-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1a1a1a;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.track-item.active { background: #111; }
+
+.track-play-btn {
+  flex-shrink: 0;
+  width: 52px;
+  height: 40px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.track-thumb {
+  width: 52px;
+  height: 40px;
+  object-fit: cover;
+  display: block;
+  border-radius: 4px;
+}
+
+.playing-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 40px;
+  background: #1db954;
+  border-radius: 4px;
+  color: #000;
+  font-size: 1rem;
+}
+
+.track-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.track-title {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #f0f0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-item.active .track-title { color: #1db954; }
+
+.track-meta {
+  font-size: 0.75rem;
+  color: #777;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.icon-btn:active { background: #1e1e1e; }
+
+.remove-btn { color: #555; }
+
+.add-menu-wrap { position: relative; }
+
+.add-menu {
+  position: absolute;
+  right: 0;
+  top: 40px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 10px;
+  min-width: 180px;
+  z-index: 100;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,.6);
+}
+
+.add-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid #2a2a2a;
+  color: #f0f0f0;
+  font-size: 0.9rem;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.add-menu-item:last-child { border-bottom: none; }
+.add-menu-item:active { background: #2a2a2a; }
+
+.add-menu-empty {
+  display: block;
+  padding: 12px 16px;
+  color: #555;
+  font-size: 0.85rem;
+}
