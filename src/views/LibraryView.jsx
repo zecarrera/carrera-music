@@ -39,8 +39,9 @@ export default function LibraryView({ onOpenPlaylist }) {
 
       {playlists.length === 0 && !creating && (
         <div className="library-empty">
-          <p>No playlists yet.</p>
-          <p>Tap <strong>＋ New</strong> to create one, then add tracks from Search.</p>
+          <div className="library-empty-icon">🎵</div>
+          <p>Your library is empty.</p>
+          <p>Tap <strong>＋ New</strong> to create a playlist, then search for songs to add.</p>
         </div>
       )}
 

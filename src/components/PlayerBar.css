@@ -1,6 +1,6 @@
 .player-bar {
   position: fixed;
-  bottom: 60px; /* sits above bottom nav */
+  bottom: 60px;
   left: 0;
   right: 0;
   background: #181818;
@@ -14,6 +14,8 @@
   background: #2a2a2a;
   cursor: pointer;
   touch-action: none;
+  position: relative;
+  overflow: hidden;
 }
 
 .progress-fill {
@@ -22,6 +24,20 @@
   transition: width 0.5s linear;
   pointer-events: none;
 }
+
+.buffering-stripe {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent 8px,
+    rgba(29,185,84,0.3) 8px,
+    rgba(29,185,84,0.3) 16px
+  );
+  animation: stripe-scroll 1s linear infinite;
+}
+@keyframes stripe-scroll { to { background-position: 16px 0; } }
 
 .player-bar-inner {
   display: flex;
@@ -70,11 +86,29 @@
   text-overflow: ellipsis;
 }
 
+.player-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.player-time {
+  font-size: 0.68rem;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}
+
+.buffering-label {
+  color: #4a9eff;
+  font-size: 0.68rem;
+}
+
 .player-controls {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
+  gap: 2px;
 }
 
 .player-controls button {
@@ -82,8 +116,8 @@
   border: none;
   color: #ccc;
   font-size: 1.1rem;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -97,8 +131,20 @@
 .player-controls button:active { background: #2a2a2a; }
 
 .play-pause-btn {
-  font-size: 1.3rem !important;
+  font-size: 1.2rem !important;
   color: #1db954 !important;
-  width: 44px !important;
-  height: 44px !important;
+  width: 40px !important;
+  height: 40px !important;
 }
+
+.queue-badge {
+  font-size: 0.62rem;
+  color: #555;
+  font-variant-numeric: tabular-nums;
+}
+
+.spin {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

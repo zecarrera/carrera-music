@@ -96,7 +96,17 @@
 
 .icon-btn:active { background: #1e1e1e; }
 
-.remove-btn { color: #555; }
+.track-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 40px;
+  background: #1e1e1e;
+  border-radius: 4px;
+  color: #444;
+  font-size: 1.2rem;
+}
 
 .add-menu-wrap { position: relative; }
 

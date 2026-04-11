@@ -38,13 +38,15 @@ export default function TrackItem({ track, queue, queueIndex, showAdd = false, s
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
-      <button className="track-play-btn" onClick={handlePlay} aria-label="Play">
-        {isActive && isPlaying ? (
-          <span className="playing-indicator">▶</span>
-        ) : (
-          <img className="track-thumb" src={track.thumbnail} alt={track.title} loading="lazy" />
-        )}
-      </button>
+        <button className="track-play-btn" onClick={handlePlay} aria-label="Play">
+          {isActive && isPlaying ? (
+            <span className="playing-indicator">▶</span>
+          ) : (
+            track.thumbnail
+              ? <img className="track-thumb" src={track.thumbnail} alt={track.title} loading="lazy" />
+              : <span className="track-thumb-placeholder">♪</span>
+          )}
+        </button>
 
       <div className="track-info">
         <span className="track-title">{track.title}</span>

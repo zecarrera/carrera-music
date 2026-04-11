@@ -40,7 +40,7 @@ export function PlayerProvider({ children }) {
   const handleStateChange = useCallback((ytState) => {
     if (ytState === YT_STATE.PLAYING) wasPlayingRef.current = true
 
-    // Detect iOS-induced pause: was playing, now paused, and page is hidden/visible
+    // Detect iOS-induced pause: was playing, now paused, and page returned to foreground
     const iosInducedPause =
       ytState === YT_STATE.PAUSED && wasPlayingRef.current && document.visibilityState === 'visible'
 
@@ -79,6 +79,16 @@ export function PlayerProvider({ children }) {
     const next = state.queueIndex + 1
     if (next < state.queue.length) dispatch({ type: 'SET_INDEX', index: next })
   }, [state.queueIndex, state.queue.length])
+
+  // Auto-advance to next track when current track ends
+  useEffect(() => {
+    if (state.ytState === YT_STATE.ENDED) {
+      const next = state.queueIndex + 1
+      if (next < state.queue.length) {
+        dispatch({ type: 'SET_INDEX', index: next })
+      }
+    }
+  }, [state.ytState]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePrev = useCallback(() => {
     const prev = state.queueIndex - 1
