@@ -21,3 +21,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Always-mounted view slots — hidden when inactive, transparent when active */
+.view-slot { display: none; }
+.view-slot-active { display: contents; }

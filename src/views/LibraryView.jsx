@@ -32,8 +32,10 @@ export default function LibraryView({ onOpenPlaylist }) {
             onChange={e => setNewName(e.target.value)}
             className="new-playlist-input"
           />
-          <button type="submit" disabled={!newName.trim()}>Create</button>
-          <button type="button" onClick={() => setCreating(false)}>Cancel</button>
+          <div className="new-playlist-form-row">
+            <button type="submit" disabled={!newName.trim()} style={{ flex: 1 }}>Create</button>
+            <button type="button" onClick={() => setCreating(false)} style={{ flex: 1 }}>Cancel</button>
+          </div>
         </form>
       )}
 

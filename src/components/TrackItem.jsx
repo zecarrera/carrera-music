@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { usePlaylists } from '../context/PlaylistContext.jsx'
 import { usePlayer } from '../context/PlayerContext.jsx'
+import AddToPlaylistBtn from './AddToPlaylistBtn.jsx'
 import './TrackItem.css'
 
 function formatDuration(seconds) {
@@ -12,9 +11,6 @@ function formatDuration(seconds) {
 
 export default function TrackItem({ track, queue, queueIndex, showAdd = false, showRemove = false, onRemove, draggable = false, onDragStart, onDragOver, onDrop }) {
   const { playQueue, currentTrack, isPlaying } = usePlayer()
-  const { playlists, addTrack } = usePlaylists()
-  const [showMenu, setShowMenu] = useState(false)
-
   const isActive = currentTrack?.id === track.id
 
   function handlePlay() {
@@ -23,11 +19,6 @@ export default function TrackItem({ track, queue, queueIndex, showAdd = false, s
     } else {
       playQueue([track], 0)
     }
-  }
-
-  function handleAddTo(playlistId) {
-    addTrack(playlistId, track)
-    setShowMenu(false)
   }
 
   return (
@@ -54,25 +45,7 @@ export default function TrackItem({ track, queue, queueIndex, showAdd = false, s
       </div>
 
       <div className="track-actions">
-        {showAdd && (
-          <div className="add-menu-wrap">
-            <button
-              className="icon-btn"
-              onClick={() => setShowMenu(v => !v)}
-              aria-label="Add to playlist"
-            >＋</button>
-            {showMenu && (
-              <div className="add-menu">
-                {playlists.length === 0 && <span className="add-menu-empty">No playlists yet</span>}
-                {playlists.map(pl => (
-                  <button key={pl.id} className="add-menu-item" onClick={() => handleAddTo(pl.id)}>
-                    {pl.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {showAdd && <AddToPlaylistBtn track={track} />}
         {showRemove && (
           <button className="icon-btn remove-btn" onClick={onRemove} aria-label="Remove">✕</button>
         )}

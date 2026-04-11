@@ -77,8 +77,21 @@ export function PlaylistProvider({ children }) {
   const removeTrack = useCallback((playlistId, trackId) => dispatch({ type: 'REMOVE_TRACK', playlistId, trackId }), [])
   const reorderTrack = useCallback((playlistId, from, to) => dispatch({ type: 'REORDER_TRACK', playlistId, from, to }), [])
 
+  const isTrackSaved = useCallback(
+    (trackId) => playlists.some(pl => pl.tracks.some(t => t.id === trackId)),
+    [playlists]
+  )
+
+  const removeTrackFromAll = useCallback((trackId) => {
+    playlists.forEach(pl => {
+      if (pl.tracks.some(t => t.id === trackId)) {
+        dispatch({ type: 'REMOVE_TRACK', playlistId: pl.id, trackId })
+      }
+    })
+  }, [playlists])
+
   return (
-    <PlaylistContext.Provider value={{ playlists, createPlaylist, renamePlaylist, deletePlaylist, addTrack, removeTrack, reorderTrack }}>
+    <PlaylistContext.Provider value={{ playlists, createPlaylist, renamePlaylist, deletePlaylist, addTrack, removeTrack, removeTrackFromAll, isTrackSaved, reorderTrack }}>
       {children}
     </PlaylistContext.Provider>
   )

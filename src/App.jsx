@@ -35,12 +35,20 @@ function AppShell() {
       <div id="yt-player-mount" style={{ display: 'none' }} />
 
       <div className="view-area">
-        {activeView === 'search' && <SearchView />}
-        {activeView === 'library' && <LibraryView onOpenPlaylist={handleOpenPlaylist} />}
+        {/* Always-mounted views — hidden with CSS to preserve state */}
+        <div className={activeView === 'search' ? 'view-slot view-slot-active' : 'view-slot'}>
+          <SearchView />
+        </div>
+        <div className={activeView === 'library' ? 'view-slot view-slot-active' : 'view-slot'}>
+          <LibraryView onOpenPlaylist={handleOpenPlaylist} />
+        </div>
+        <div className={activeView === 'player' ? 'view-slot view-slot-active' : 'view-slot'}>
+          <PlayerView onNavigate={handleNavigate} />
+        </div>
+        {/* Playlist view is transient — unmount when closed is fine */}
         {activeView === 'playlist' && openPlaylistId && (
           <PlaylistView playlistId={openPlaylistId} onBack={handleBackFromPlaylist} />
         )}
-        {activeView === 'player' && <PlayerView onNavigate={handleNavigate} />}
       </div>
 
       {activeView !== 'player' && <PlayerBar onOpenPlayer={() => handleNavigate('player')} />}

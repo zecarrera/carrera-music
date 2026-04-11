@@ -1,4 +1,4 @@
-.library-view { display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
+.library-view { display: flex; flex-direction: column; height: 100%; overflow-y: auto; overflow-x: hidden; }
 
 .library-header {
   display: flex;
@@ -20,29 +20,36 @@
 
 .new-playlist-form {
   display: flex;
+  flex-direction: column;
   gap: 8px;
   padding: 0 16px 12px;
 }
 
+.new-playlist-form-row {
+  display: flex;
+  gap: 8px;
+}
+
 .new-playlist-input {
   flex: 1;
+  min-width: 0;
   background: #1e1e1e;
   border: 1px solid #333;
   border-radius: 8px;
   color: #f0f0f0;
   font-size: 0.9rem;
-  padding: 8px 12px;
+  padding: 10px 12px;
   font-family: inherit;
   outline: none;
   -webkit-appearance: none;
-  min-width: 0;
 }
 
 .new-playlist-form button {
   font-size: 0.85rem;
-  padding: 8px 12px;
+  padding: 10px 16px;
   border-radius: 8px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .library-empty {
