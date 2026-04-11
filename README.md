@@ -171,3 +171,30 @@ vercel --prebuilt --prod
 | `phase-b-mvp` | Full YouTube MVP with playlists and localStorage |
 | `phase-c-audius` | Audius spike — lock-screen audio confirmed, catalog unsuitable |
 | `phase-e-polish` | **Current** — polished YouTube MVP + PlayerView + Supabase persistence |
+
+---
+
+## Testing
+
+```bash
+npm test              # run all tests once
+npm run test:watch    # watch mode (re-runs on file change)
+npm run test:coverage # generate coverage report
+```
+
+### What is covered
+
+| File | Type | Tests |
+|---|---|---|
+| `src/__tests__/utils.test.js` | Unit | `formatDuration`, `fmt`, `loadRecent`, `saveRecent` |
+| `src/__tests__/reducer.test.js` | Unit | PlaylistContext reducer — all 7 action types |
+| `src/components/AddToPlaylistBtn.test.jsx` | Component | +/✓ toggle, dropdown, add/remove flow |
+| `src/components/BottomNav.test.jsx` | Component | 3 tabs, active state, playing dot, navigation |
+| `src/components/PlayerBar.test.jsx` | Component | Null guard, track info, play/pause, prev/next |
+| `src/context/PlaylistContext.test.jsx` | Integration | CRUD, isTrackSaved, removeTrackFromAll, localStorage |
+
+### Pre-push hook
+Husky runs `npm test` automatically before every `git push`. A failed test suite will abort the push.
+
+### CI
+GitHub Actions runs lint + tests on every push and pull request (see `.github/workflows/ci.yml`).
