@@ -4,6 +4,7 @@ import { PlaylistProvider } from './context/PlaylistContext.jsx'
 import SearchView from './views/SearchView.jsx'
 import LibraryView from './views/LibraryView.jsx'
 import PlaylistView from './views/PlaylistView.jsx'
+import PlayerView from './views/PlayerView.jsx'
 import PlayerBar from './components/PlayerBar.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import ResumeOverlay from './components/ResumeOverlay.jsx'
@@ -39,9 +40,10 @@ function AppShell() {
         {activeView === 'playlist' && openPlaylistId && (
           <PlaylistView playlistId={openPlaylistId} onBack={handleBackFromPlaylist} />
         )}
+        {activeView === 'player' && <PlayerView onNavigate={handleNavigate} />}
       </div>
 
-      <PlayerBar />
+      {activeView !== 'player' && <PlayerBar onOpenPlayer={() => handleNavigate('player')} />}
       <BottomNav activeView={activeView === 'playlist' ? 'library' : activeView} onNavigate={handleNavigate} />
       <ResumeOverlay />
     </div>

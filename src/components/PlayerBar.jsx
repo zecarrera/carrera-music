@@ -8,7 +8,7 @@ function fmt(s) {
   return `${m}:${sec}`
 }
 
-export default function PlayerBar() {
+export default function PlayerBar({ onOpenPlayer }) {
   const { currentTrack, isPlaying, ytState, play, pause, next, prev, seekTo, getCurrentTime, getDuration, queueIndex, queue } = usePlayer()
   const [progress, setProgress] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
@@ -54,13 +54,14 @@ export default function PlayerBar() {
       </div>
 
       <div className="player-bar-inner">
-        <div className="player-track-info">
+        <button className="player-track-info" onClick={onOpenPlayer} aria-label="Open player">
           {thumb && <img className="player-thumb" src={thumb} alt={currentTrack.title} />}
           <div className="player-text">
             <span className="player-title">{currentTrack.title}</span>
             <span className="player-artist">{currentTrack.artist}</span>
           </div>
-        </div>
+          <span className="player-expand-hint">⌃</span>
+        </button>
 
         <div className="player-right">
           <div className="player-time">
