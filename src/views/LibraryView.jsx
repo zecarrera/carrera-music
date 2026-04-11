@@ -25,7 +25,6 @@ export default function LibraryView({ onOpenPlaylist }) {
       {creating && (
         <form className="new-playlist-form" onSubmit={handleCreate}>
           <input
-            autoFocus
             type="text"
             placeholder="Playlist name…"
             value={newName}
