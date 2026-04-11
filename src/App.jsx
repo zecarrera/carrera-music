@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PlayerProvider } from './context/PlayerContext.jsx'
 import { PlaylistProvider } from './context/PlaylistContext.jsx'
+import { AuthProvider } from './context/AuthContext.jsx'
 import SearchView from './views/SearchView.jsx'
 import LibraryView from './views/LibraryView.jsx'
 import PlaylistView from './views/PlaylistView.jsx'
@@ -60,10 +61,12 @@ function AppShell() {
 
 export default function App() {
   return (
-    <PlaylistProvider>
-      <PlayerProvider>
-        <AppShell />
-      </PlayerProvider>
-    </PlaylistProvider>
+    <AuthProvider>
+      <PlaylistProvider>
+        <PlayerProvider>
+          <AppShell />
+        </PlayerProvider>
+      </PlaylistProvider>
+    </AuthProvider>
   )
 }
