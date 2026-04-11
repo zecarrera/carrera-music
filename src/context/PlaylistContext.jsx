@@ -107,6 +107,9 @@ const PlaylistContext = createContext(null)
 export function PlaylistProvider({ children }) {
   const { user } = useAuth()
   const [playlists, dispatch] = useReducer(reducer, [], loadFromStorage)
+  // Prevents the initial remote SET from wiping optimistic mutations that
+  // land between component mount and the fetch resolving (race condition).
+  const hasMutatedRef = useRef(false)
   // Track whether we've synced from remote at least once
   const syncedRef = useRef(false)
 
@@ -119,7 +122,10 @@ export function PlaylistProvider({ children }) {
     syncedRef.current = true
     fetchRemotePlaylists(user.id)
       .then(remote => {
-        dispatch({ type: 'SET', playlists: remote })
+        // Skip if user already made mutations while the fetch was in-flight
+        if (!hasMutatedRef.current) {
+          dispatch({ type: 'SET', playlists: remote })
+        }
       })
       .catch(err => console.warn('Failed to load playlists from Supabase:', err))
   }, [user])
@@ -127,6 +133,7 @@ export function PlaylistProvider({ children }) {
   // ── Mutations ──────────────────────────────────────────────────────────────
 
   const createPlaylist = useCallback(async (name) => {
+    hasMutatedRef.current = true
     const id = supabase && user
       ? undefined       // let Supabase generate UUID
       : makeLocalId()   // offline fallback
@@ -145,6 +152,7 @@ export function PlaylistProvider({ children }) {
   }, [user])
 
   const renamePlaylist = useCallback(async (id, name) => {
+    hasMutatedRef.current = true
     dispatch({ type: 'RENAME', id, name })
     if (supabase && user) {
       const { error } = await supabase.from('playlists').update({ name }).eq('id', id)
@@ -153,6 +161,7 @@ export function PlaylistProvider({ children }) {
   }, [user])
 
   const deletePlaylist = useCallback(async (id) => {
+    hasMutatedRef.current = true
     dispatch({ type: 'DELETE', id })
     if (supabase && user) {
       const { error } = await supabase.from('playlists').delete().eq('id', id)
@@ -161,6 +170,7 @@ export function PlaylistProvider({ children }) {
   }, [user])
 
   const addTrack = useCallback(async (playlistId, track) => {
+    hasMutatedRef.current = true
     dispatch({ type: 'ADD_TRACK', playlistId, track })
     if (supabase && user) {
       // Get current max position
@@ -181,6 +191,7 @@ export function PlaylistProvider({ children }) {
   }, [user, playlists])
 
   const removeTrack = useCallback(async (playlistId, trackId) => {
+    hasMutatedRef.current = true
     dispatch({ type: 'REMOVE_TRACK', playlistId, trackId })
     if (supabase && user) {
       const { error } = await supabase
