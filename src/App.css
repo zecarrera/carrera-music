@@ -4,6 +4,8 @@
   height: 100dvh;
   overflow: hidden;
   background: #0f0f0f;
+  /* Push content below iPhone status bar */
+  padding-top: env(safe-area-inset-top);
 }
 
 .view-area {
