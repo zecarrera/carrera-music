@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 
 // ── formatDuration (from TrackItem) ──────────────────────────────────────────
 function formatDuration(seconds) {
@@ -55,7 +55,7 @@ function loadRecent() {
   try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') } catch { return [] }
 }
 function saveRecent(searches) {
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(searches.slice(0, 6))) } catch {}
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(searches.slice(0, 6))) } catch { /* ignore */ }
 }
 
 describe('loadRecent', () => {

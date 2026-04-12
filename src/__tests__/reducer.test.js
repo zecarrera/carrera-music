@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
 // Inline the reducer so tests don't depend on module side-effects
-function makeLocalId() {
-  return `pl_${Date.now()}_test`
-}
 
 function reducer(state, action) {
   switch (action.type) {

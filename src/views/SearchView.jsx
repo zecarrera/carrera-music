@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
 import { youtubeProvider } from '../providers/youtubeProvider.js'
-import { usePlayer } from '../context/PlayerContext.jsx'
 import TrackItem from '../components/TrackItem.jsx'
 import './SearchView.css'
 
@@ -11,7 +10,7 @@ function loadRecent() {
   try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') } catch { return [] }
 }
 function saveRecent(searches) {
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(searches.slice(0, 6))) } catch {}
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(searches.slice(0, 6))) } catch { /* ignore */ }
 }
 
 export default function SearchView() {
@@ -22,7 +21,6 @@ export default function SearchView() {
   const [searched, setSearched] = useState(false)
   const [recent, setRecent] = useState(loadRecent)
   const debounceRef = useRef(null)
-  const { playQueue } = usePlayer()
 
   const runSearch = useCallback(async (q) => {
     const trimmed = q.trim()
@@ -118,7 +116,7 @@ export default function SearchView() {
         )}
 
         {!loading && searched && results.length === 0 && !error && (
-          <p className="search-status">No results found for "{query}".</p>
+          <p className="search-status">No results found for &ldquo;{query}&rdquo;.</p>
         )}
 
         {!searched && !loading && recent.length > 0 && (

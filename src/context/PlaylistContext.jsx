@@ -16,7 +16,7 @@ function loadFromStorage() {
 function saveToStorage(playlists) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(playlists))
-  } catch {}
+  } catch { /* ignore localStorage errors */ }
 }
 
 function makeLocalId() {
@@ -134,9 +134,6 @@ export function PlaylistProvider({ children }) {
 
   const createPlaylist = useCallback(async (name) => {
     hasMutatedRef.current = true
-    const id = supabase && user
-      ? undefined       // let Supabase generate UUID
-      : makeLocalId()   // offline fallback
 
     if (supabase && user) {
       const { data, error } = await supabase
