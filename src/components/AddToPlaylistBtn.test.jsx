@@ -24,6 +24,19 @@ describe('AddToPlaylistBtn', () => {
     expect(await screen.findByText('Favs')).toBeInTheDocument()
   })
 
+  it('opens menu downward when button is near top of screen', async () => {
+    localStorage.setItem('cm_playlists', JSON.stringify([
+      { id: 'pl1', name: 'Favs', tracks: [], createdAt: Date.now() },
+    ]))
+    renderWithProviders(<AddToPlaylistBtn track={track} />)
+    const btn = screen.getByRole('button', { name: /add to playlist/i })
+    // Simulate button near top of viewport (top < 200)
+    vi.spyOn(btn, 'getBoundingClientRect').mockReturnValue({ top: 80, bottom: 116, left: 0, right: 36, width: 36, height: 36 })
+    fireEvent.click(btn)
+    const menu = await screen.findByText('Favs')
+    expect(menu.closest('.atpb-menu')).toHaveClass('atpb-menu-down')
+  })
+
   it('shows "No playlists yet" when no playlists exist', async () => {
     renderWithProviders(<AddToPlaylistBtn track={track} />)
     fireEvent.click(screen.getByRole('button', { name: /add to playlist/i }))

@@ -52,6 +52,12 @@
   animation: atpb-fade-in 0.12s ease;
 }
 
+/* Flip to open downward when near top of screen */
+.atpb-menu.atpb-menu-down {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
+
 @keyframes atpb-fade-in {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
