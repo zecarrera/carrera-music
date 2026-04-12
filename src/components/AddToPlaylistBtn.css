@@ -64,7 +64,9 @@
 }
 
 .atpb-menu-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   text-align: left;
   background: none;
@@ -79,6 +81,15 @@
 
 .atpb-menu-item:last-child { border-bottom: none; }
 .atpb-menu-item:active { background: #2a2a2a; }
+
+.atpb-menu-item.atpb-in-playlist { color: #1db954; }
+
+.atpb-check {
+  width: 14px;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  color: #1db954;
+}
 
 .atpb-empty {
   display: block;

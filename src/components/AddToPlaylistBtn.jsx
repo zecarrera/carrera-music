@@ -3,7 +3,7 @@ import { usePlaylists } from '../context/PlaylistContext.jsx'
 import './AddToPlaylistBtn.css'
 
 export default function AddToPlaylistBtn({ track, size = 'normal' }) {
-  const { playlists, addTrack, isTrackSaved, removeTrackFromAll } = usePlaylists()
+  const { playlists, addTrack, removeTrack, isTrackSaved } = usePlaylists()
   const [showMenu, setShowMenu] = useState(false)
   const [opensDown, setOpensDown] = useState(false)
   const menuRef = useRef(null)
@@ -21,23 +21,22 @@ export default function AddToPlaylistBtn({ track, size = 'normal' }) {
 
   function handleClick(e) {
     e.stopPropagation()
-    if (saved) {
-      removeTrackFromAll(track.id)
-      setShowMenu(false)
-    } else {
-      if (btnRef.current) {
-        const rect = btnRef.current.getBoundingClientRect()
-        // If less than 200px above the button, open downward instead
-        setOpensDown(rect.top < 200)
-      }
-      setShowMenu(v => !v)
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setOpensDown(rect.top < 200)
     }
+    setShowMenu(v => !v)
   }
 
-  function handleAdd(playlistId, e) {
+  function handleToggle(pl, e) {
     e.stopPropagation()
-    addTrack(playlistId, track)
-    setShowMenu(false)
+    const inPlaylist = pl.tracks.some(t => t.id === track.id)
+    if (inPlaylist) {
+      removeTrack(pl.id, track.id)
+    } else {
+      addTrack(pl.id, track)
+    }
+    // Keep menu open so user can add to multiple playlists at once
   }
 
   return (
@@ -46,7 +45,7 @@ export default function AddToPlaylistBtn({ track, size = 'normal' }) {
         ref={btnRef}
         className={`atpb-btn ${saved ? 'atpb-saved' : ''}`}
         onClick={handleClick}
-        aria-label={saved ? 'Remove from playlist' : 'Add to playlist'}
+        aria-label={saved ? 'Manage playlists' : 'Add to playlist'}
       >
         {saved ? '✓' : '+'}
       </button>
@@ -55,11 +54,19 @@ export default function AddToPlaylistBtn({ track, size = 'normal' }) {
         <div className={`atpb-menu ${opensDown ? 'atpb-menu-down' : ''}`}>
           {playlists.length === 0
             ? <span className="atpb-empty">No playlists yet</span>
-            : playlists.map(pl => (
-                <button key={pl.id} className="atpb-menu-item" onClick={(e) => handleAdd(pl.id, e)}>
-                  {pl.name}
-                </button>
-              ))
+            : playlists.map(pl => {
+                const inPlaylist = pl.tracks.some(t => t.id === track.id)
+                return (
+                  <button
+                    key={pl.id}
+                    className={`atpb-menu-item ${inPlaylist ? 'atpb-in-playlist' : ''}`}
+                    onClick={(e) => handleToggle(pl, e)}
+                  >
+                    <span className="atpb-check">{inPlaylist ? '✓' : ''}</span>
+                    {pl.name}
+                  </button>
+                )
+              })
           }
         </div>
       )}
