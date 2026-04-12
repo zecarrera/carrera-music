@@ -15,6 +15,15 @@ After any change that affects the following, **always check if `README.md` needs
 
 The README is the source of truth for onboarding — keep it accurate.
 
+## Tests
+**Always review and update tests when making code changes:**
+- If you add a new component or hook, add a corresponding test file
+- If you change behaviour (props, events, state shape, API calls), update the affected tests
+- If you delete a feature or component, delete its test file and remove related assertions elsewhere
+- Run `npm test` and `npm run lint` before every commit — both must pass with 0 errors
+- Test files live co-located with the component (`ComponentName.test.jsx`) or in `src/__tests__/` for utilities and reducers
+- Never commit with failing tests; fix the root cause rather than deleting or skipping tests
+
 ## Code style
 - React functional components with hooks only
 - Plain CSS files co-located with components (no CSS-in-JS, no Tailwind)

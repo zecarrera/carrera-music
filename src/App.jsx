@@ -8,7 +8,6 @@ import PlaylistView from './views/PlaylistView.jsx'
 import PlayerView from './views/PlayerView.jsx'
 import PlayerBar from './components/PlayerBar.jsx'
 import BottomNav from './components/BottomNav.jsx'
-import ResumeOverlay from './components/ResumeOverlay.jsx'
 import './App.css'
 
 function AppShell() {
@@ -54,7 +53,6 @@ function AppShell() {
 
       {activeView !== 'player' && <PlayerBar onOpenPlayer={() => handleNavigate('player')} />}
       <BottomNav activeView={activeView === 'playlist' ? 'library' : activeView} onNavigate={handleNavigate} />
-      <ResumeOverlay />
     </div>
   )
 }

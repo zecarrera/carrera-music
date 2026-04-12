@@ -153,3 +153,91 @@ describe('PlaylistContext reducer', () => {
     })
   })
 })
+
+// ── PlayerContext reducer ────────────────────────────────────────────────────
+
+const YT_STATE = { UNSTARTED: -1, ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3 }
+
+const trackA = { id: 'yt1', title: 'Song A', artist: 'Artist' }
+const trackB = { id: 'yt2', title: 'Song B', artist: 'Artist' }
+const trackC = { id: 'yt3', title: 'Song C', artist: 'Artist' }
+
+const playerInitial = { currentTrack: null, queue: [], queueIndex: 0, ytState: YT_STATE.UNSTARTED }
+
+function playerReducer(state, action) {
+  switch (action.type) {
+    case 'PLAY_QUEUE':
+      return { ...state, queue: action.queue, queueIndex: action.index ?? 0, currentTrack: action.queue[action.index ?? 0] }
+    case 'SET_YT_STATE':
+      return { ...state, ytState: action.state }
+    case 'SET_INDEX': {
+      const idx = Math.max(0, Math.min(action.index, state.queue.length - 1))
+      return { ...state, queueIndex: idx, currentTrack: state.queue[idx] }
+    }
+    default:
+      return state
+  }
+}
+
+describe('PlayerContext reducer', () => {
+  describe('PLAY_QUEUE', () => {
+    it('sets queue, index and currentTrack', () => {
+      const state = playerReducer(playerInitial, { type: 'PLAY_QUEUE', queue: [trackA, trackB], index: 0 })
+      expect(state.queue).toEqual([trackA, trackB])
+      expect(state.queueIndex).toBe(0)
+      expect(state.currentTrack).toEqual(trackA)
+    })
+
+    it('defaults to index 0 when index omitted', () => {
+      const state = playerReducer(playerInitial, { type: 'PLAY_QUEUE', queue: [trackA, trackB] })
+      expect(state.currentTrack).toEqual(trackA)
+    })
+
+    it('respects a non-zero start index', () => {
+      const state = playerReducer(playerInitial, { type: 'PLAY_QUEUE', queue: [trackA, trackB, trackC], index: 2 })
+      expect(state.currentTrack).toEqual(trackC)
+      expect(state.queueIndex).toBe(2)
+    })
+  })
+
+  describe('SET_INDEX (used by jumpTo / next / prev)', () => {
+    const withQueue = playerReducer(playerInitial, { type: 'PLAY_QUEUE', queue: [trackA, trackB, trackC], index: 0 })
+
+    it('jumps to any valid index', () => {
+      const state = playerReducer(withQueue, { type: 'SET_INDEX', index: 2 })
+      expect(state.currentTrack).toEqual(trackC)
+      expect(state.queueIndex).toBe(2)
+    })
+
+    it('clamps below 0 to 0', () => {
+      const state = playerReducer(withQueue, { type: 'SET_INDEX', index: -1 })
+      expect(state.queueIndex).toBe(0)
+      expect(state.currentTrack).toEqual(trackA)
+    })
+
+    it('clamps above queue length to last item', () => {
+      const state = playerReducer(withQueue, { type: 'SET_INDEX', index: 99 })
+      expect(state.queueIndex).toBe(2)
+      expect(state.currentTrack).toEqual(trackC)
+    })
+
+    it('does not include needsResume in state', () => {
+      const state = playerReducer(withQueue, { type: 'SET_INDEX', index: 1 })
+      expect(state).not.toHaveProperty('needsResume')
+    })
+  })
+
+  describe('SET_YT_STATE', () => {
+    it('updates ytState', () => {
+      const state = playerReducer(playerInitial, { type: 'SET_YT_STATE', state: YT_STATE.PLAYING })
+      expect(state.ytState).toBe(YT_STATE.PLAYING)
+    })
+  })
+
+  describe('PLAY_QUEUE state shape', () => {
+    it('does not include needsResume', () => {
+      const state = playerReducer(playerInitial, { type: 'PLAY_QUEUE', queue: [trackA], index: 0 })
+      expect(state).not.toHaveProperty('needsResume')
+    })
+  })
+})

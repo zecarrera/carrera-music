@@ -45,7 +45,7 @@ export default function PlayerView({ onNavigate }) {
   const {
     currentTrack, isPlaying, ytState,
     play, pause, next, prev, seekTo, getCurrentTime, getDuration,
-    queueIndex, queue,
+    queueIndex, queue, jumpTo,
   } = usePlayer()
 
   const [progress, setProgress] = useState(0)
@@ -134,15 +134,23 @@ export default function PlayerView({ onNavigate }) {
           <p className="pv-queue-pos">{queueIndex + 1} of {queue.length} in queue</p>
           {queueIndex < queue.length - 1 && (
             <div className="pv-queue-list">
-              {queue.slice(queueIndex + 1).map((track, i) => (
-                <div key={track.id} className="pv-queue-item">
-                  <span className="pv-queue-num">{queueIndex + 2 + i}</span>
-                  <div className="pv-queue-info">
-                    <span className="pv-queue-title">{track.title}</span>
-                    {track.artist && <span className="pv-queue-artist">{track.artist}</span>}
-                  </div>
-                </div>
-              ))}
+              {queue.slice(queueIndex + 1).map((track, i) => {
+                const trackIndex = queueIndex + 1 + i
+                return (
+                  <button
+                    key={track.id}
+                    className="pv-queue-item"
+                    onClick={() => jumpTo(trackIndex)}
+                    aria-label={`Play ${track.title}`}
+                  >
+                    <span className="pv-queue-num">{trackIndex + 1}</span>
+                    <div className="pv-queue-info">
+                      <span className="pv-queue-title">{track.title}</span>
+                      {track.artist && <span className="pv-queue-artist">{track.artist}</span>}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

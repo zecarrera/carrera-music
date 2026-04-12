@@ -10,21 +10,17 @@ const initialState = {
   queue: [],
   queueIndex: 0,
   ytState: YT_STATE.UNSTARTED,
-  // Set to true when iOS pauses us in background/lock so we can show resume UX
-  needsResume: false,
 }
 
 function reducer(state, action) {
   switch (action.type) {
     case 'PLAY_QUEUE':
-      return { ...state, queue: action.queue, queueIndex: action.index ?? 0, currentTrack: action.queue[action.index ?? 0], needsResume: false }
+      return { ...state, queue: action.queue, queueIndex: action.index ?? 0, currentTrack: action.queue[action.index ?? 0] }
     case 'SET_YT_STATE':
-      return { ...state, ytState: action.state, needsResume: action.needsResume ?? state.needsResume }
-    case 'SET_NEEDS_RESUME':
-      return { ...state, needsResume: action.value }
+      return { ...state, ytState: action.state }
     case 'SET_INDEX': {
       const idx = Math.max(0, Math.min(action.index, state.queue.length - 1))
-      return { ...state, queueIndex: idx, currentTrack: state.queue[idx], needsResume: false }
+      return { ...state, queueIndex: idx, currentTrack: state.queue[idx] }
     }
     default:
       return state
@@ -37,21 +33,11 @@ export function PlayerProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const wasPlayingRef = useRef(false)
   // When set, the next track load will trigger play() automatically.
-  // Uses a ref so it's synchronous and accessible across callbacks.
   const shouldAutoPlayRef = useRef(false)
 
   const handleStateChange = useCallback((ytState) => {
     if (ytState === YT_STATE.PLAYING) wasPlayingRef.current = true
-
-    // Detect iOS-induced pause: was playing, now paused, and page returned to foreground
-    const iosInducedPause =
-      ytState === YT_STATE.PAUSED && wasPlayingRef.current && document.visibilityState === 'visible'
-
-    dispatch({
-      type: 'SET_YT_STATE',
-      state: ytState,
-      needsResume: iosInducedPause ? true : undefined,
-    })
+    dispatch({ type: 'SET_YT_STATE', state: ytState })
   }, [])
 
   const { loadTrack, play, pause, seekTo, getCurrentTime, getDuration } =
@@ -70,17 +56,6 @@ export function PlayerProvider({ children }) {
     }
   }, [state.currentTrack]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Detect returning from background / lock screen
-  useEffect(() => {
-    function handleVisibility() {
-      if (document.visibilityState === 'visible' && wasPlayingRef.current && state.ytState === YT_STATE.PAUSED) {
-        dispatch({ type: 'SET_NEEDS_RESUME', value: true })
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
-  }, [state.ytState])
-
   const playQueue = useCallback((queue, index = 0) => {
     wasPlayingRef.current = false
     shouldAutoPlayRef.current = true
@@ -91,6 +66,11 @@ export function PlayerProvider({ children }) {
     const next = state.queueIndex + 1
     if (next < state.queue.length) dispatch({ type: 'SET_INDEX', index: next })
   }, [state.queueIndex, state.queue.length])
+
+  const jumpTo = useCallback((index) => {
+    shouldAutoPlayRef.current = true
+    dispatch({ type: 'SET_INDEX', index })
+  }, [])
 
   // Auto-advance to next track when current track ends
   useEffect(() => {
@@ -106,15 +86,6 @@ export function PlayerProvider({ children }) {
     const prev = state.queueIndex - 1
     if (prev >= 0) dispatch({ type: 'SET_INDEX', index: prev })
   }, [state.queueIndex])
-
-  const handleResume = useCallback(() => {
-    dispatch({ type: 'SET_NEEDS_RESUME', value: false })
-    play()
-  }, [play])
-
-  const dismissResume = useCallback(() => {
-    dispatch({ type: 'SET_NEEDS_RESUME', value: false })
-  }, [])
 
   const isPlaying = state.ytState === YT_STATE.PLAYING || state.ytState === YT_STATE.BUFFERING
 
@@ -134,7 +105,6 @@ export function PlayerProvider({ children }) {
       queueIndex: state.queueIndex,
       ytState: state.ytState,
       isPlaying,
-      needsResume: state.needsResume,
       playQueue,
       play,
       pause,
@@ -143,8 +113,7 @@ export function PlayerProvider({ children }) {
       getDuration,
       next: handleNext,
       prev: handlePrev,
-      handleResume,
-      dismissResume,
+      jumpTo,
     }}>
       {children}
     </PlayerContext.Provider>

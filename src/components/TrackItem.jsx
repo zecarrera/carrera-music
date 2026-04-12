@@ -24,31 +24,29 @@ export default function TrackItem({ track, queue, queueIndex, showAdd = false, s
   return (
     <div
       className={`track-item ${isActive ? 'active' : ''}`}
-      onClick={handlePlay}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && handlePlay()}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
-      <div className="track-play-btn" aria-hidden="true">
-        {isActive && isPlaying ? (
-          <span className="playing-indicator">▶</span>
-        ) : (
-          track.thumbnail
-            ? <img className="track-thumb" src={track.thumbnail} alt={track.title} loading="lazy" />
-            : <span className="track-thumb-placeholder">♪</span>
-        )}
-      </div>
+      <button className="track-item-main" onClick={handlePlay} aria-label={`Play ${track.title}`}>
+        <div className="track-play-btn" aria-hidden="true">
+          {isActive && isPlaying ? (
+            <span className="playing-indicator">▶</span>
+          ) : (
+            track.thumbnail
+              ? <img className="track-thumb" src={track.thumbnail} alt="" loading="lazy" />
+              : <span className="track-thumb-placeholder">♪</span>
+          )}
+        </div>
 
-      <div className="track-info">
-        <span className="track-title">{track.title}</span>
-        <span className="track-meta">{track.artist}{track.duration ? ` · ${formatDuration(track.duration)}` : ''}</span>
-      </div>
+        <div className="track-info">
+          <span className="track-title">{track.title}</span>
+          <span className="track-meta">{track.artist}{track.duration ? ` · ${formatDuration(track.duration)}` : ''}</span>
+        </div>
+      </button>
 
-      <div className="track-actions" onClick={e => e.stopPropagation()}>
+      <div className="track-actions">
         {showAdd && <AddToPlaylistBtn track={track} />}
         {showRemove && (
           <button className="icon-btn remove-btn" onClick={onRemove} aria-label="Remove">✕</button>

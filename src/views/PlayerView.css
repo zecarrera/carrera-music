@@ -79,6 +79,7 @@
 .pv-meta {
   width: 100%;
   max-width: 320px;
+  flex-shrink: 0;
 }
 
 .pv-meta-row {
@@ -115,6 +116,7 @@
 .pv-progress-wrap {
   width: 100%;
   max-width: 320px;
+  flex-shrink: 0;
 }
 
 .pv-track {
@@ -161,6 +163,7 @@
   align-items: center;
   justify-content: center;
   gap: 20px;
+  flex-shrink: 0;
 }
 
 .pv-btn {
@@ -232,7 +235,18 @@
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid #1a1a1a;
+  width: 100%;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
+
+.pv-queue-item:active { background: #111; }
 
 .pv-queue-num {
   font-size: 0.72rem;

@@ -9,7 +9,8 @@ A mobile-first iOS PWA music player backed by YouTube, with playlist management 
 - **YouTube search** — search for any song or artist using the YouTube Data API
 - **Full-screen player** — large artwork, progress bar with seek, prev/play/pause/next controls
 - **Mini player bar** — persistent now-playing bar with time display; tap track info to open full player
-- **Queue** — play a full search result list as a queue with auto-advance
+- **Queue** — play a full search result list as a queue with auto-advance; upcoming tracks listed in player view
+- **Tap-to-play** — tap anywhere on a track row to start playing; auto-plays immediately on selection
 - **Playlists** — create, rename, delete playlists; add/remove tracks with a `+` / `✓` toggle on every track
 - **Library** — browse your saved playlists
 - **Persistent storage** — playlists sync to Supabase Postgres; anonymous sign-in on first load (no login required)
@@ -43,7 +44,6 @@ src/
     AddToPlaylistBtn.jsx   + / ✓ toggle for adding tracks to playlists
     BottomNav.jsx          3-tab nav: Search | Player | Library
     PlayerBar.jsx          Mini now-playing bar (hidden in PlayerView)
-    ResumeOverlay.jsx      "Tap to resume" after iOS lock-screen pause
     TrackItem.jsx          Single track row used in search + playlists
   context/
     AuthContext.jsx        Supabase anonymous sign-in, exposes user/loading
@@ -138,7 +138,7 @@ vercel --prebuilt --prod
 
 ## Known limitations
 
-- **Lock-screen playback** — YouTube IFrame API is suspended by iOS when the screen locks. A "Tap to Resume" overlay appears when returning to the app. Full lock-screen audio requires a provider with direct stream URLs. See `FINDINGS.md` for full analysis.
+- **Lock-screen playback** — YouTube IFrame API is suspended by iOS when the screen locks. Full lock-screen audio requires a provider with direct stream URLs. See `FINDINGS.md` for full analysis.
 - **Cross-device sync** — currently tied to the anonymous Supabase session per browser. Full cross-device sync requires email/Google sign-in (planned Phase 2).
 - **YouTube API quota** — the Data API has a daily quota. Searches are cached in-memory per session to reduce calls.
 
@@ -168,11 +168,13 @@ npm run test:coverage # generate coverage report
 | File | Type | Tests |
 |---|---|---|
 | `src/__tests__/utils.test.js` | Unit | `formatDuration`, `fmt`, `loadRecent`, `saveRecent` |
-| `src/__tests__/reducer.test.js` | Unit | PlaylistContext reducer — all 7 action types |
+| `src/__tests__/reducer.test.js` | Unit | PlaylistContext reducer (7 actions) + PlayerContext reducer (`PLAY_QUEUE`, `SET_INDEX`/jumpTo, `SET_YT_STATE`) |
+| `src/components/TrackItem.test.jsx` | Component | Render, tap-to-play, add/remove buttons stop propagation, playing indicator |
 | `src/components/AddToPlaylistBtn.test.jsx` | Component | +/✓ toggle, dropdown, add/remove flow |
 | `src/components/BottomNav.test.jsx` | Component | 3 tabs, active state, playing dot, navigation |
 | `src/components/PlayerBar.test.jsx` | Component | Null guard, track info, play/pause, prev/next |
 | `src/context/PlaylistContext.test.jsx` | Integration | CRUD, isTrackSaved, removeTrackFromAll, localStorage |
+| `src/context/PlaylistContext.supabase.test.jsx` | Integration | Supabase sync — insert/delete with anonymous user, race-condition guard |
 
 ### Pre-push hook
 Husky runs `npm test` automatically before every `git push`. A failed test suite will abort the push.
