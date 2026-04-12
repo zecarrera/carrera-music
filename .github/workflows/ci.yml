@@ -28,3 +28,23 @@ jobs:
 
       - name: Test
         run: npm test
+
+  migrate:
+    name: Apply DB Migrations
+    runs-on: ubuntu-latest
+    # Only run migrations on pushes (not PRs) and only when secrets are present
+    if: github.event_name == 'push' && vars.SUPABASE_PROJECT_ID != ''
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Apply migrations
+        run: supabase db push --db-url "$SUPABASE_DB_URL"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

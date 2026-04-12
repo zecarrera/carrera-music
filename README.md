@@ -93,45 +93,26 @@ All `VITE_` prefixed vars are exposed to the browser. Supabase Row-Level Securit
 
 ### Supabase schema
 
-Run the following in the Supabase SQL Editor:
+Schema migrations live in `supabase/migrations/` and are applied automatically by the CI `migrate` job on every push (after tests pass). No manual SQL required once the secrets below are configured.
 
-```sql
-create table playlists (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users not null,
-  name text not null,
-  created_at timestamptz default now()
-);
+To run migrations manually (e.g. on a fresh project):
 
-create table playlist_tracks (
-  id uuid primary key default gen_random_uuid(),
-  playlist_id uuid references playlists(id) on delete cascade not null,
-  track_id text not null,
-  title text not null,
-  artist text,
-  thumbnail text,
-  thumbnail_medium text,
-  duration integer,
-  position integer not null,
-  added_at timestamptz default now()
-);
-
-create index on playlists(user_id);
-create index on playlist_tracks(playlist_id, position);
-
-alter table playlists enable row level security;
-alter table playlist_tracks enable row level security;
-
-create policy "users manage own playlists"
-  on playlists for all using (auth.uid() = user_id);
-
-create policy "users manage own tracks"
-  on playlist_tracks for all using (
-    playlist_id in (select id from playlists where user_id = auth.uid())
-  );
+```bash
+supabase login                       # authenticate with your Supabase account
+supabase link --project-ref <ref>    # ref from your project URL
+supabase db push                     # apply all pending migrations
 ```
 
 Also enable **Anonymous sign-in** under Authentication → Configuration → Providers.
+
+#### GitHub Actions secrets required for automatic migrations
+
+| Secret | Where to find it |
+|---|---|
+| `SUPABASE_ACCESS_TOKEN` | [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) |
+| `SUPABASE_DB_URL` | Project Settings → Database → Connection string (URI mode) |
+
+Add these under **GitHub repo → Settings → Secrets and variables → Actions**. Until they are set, the migrate job is skipped (tests still run).
 
 ### Run locally
 
