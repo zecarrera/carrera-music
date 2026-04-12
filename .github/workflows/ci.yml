@@ -32,8 +32,8 @@ jobs:
   migrate:
     name: Apply DB Migrations
     runs-on: ubuntu-latest
-    # Only run migrations on pushes (not PRs) and only when secrets are present
-    if: github.event_name == 'push' && vars.SUPABASE_PROJECT_ID != ''
+    # Only run migrations on pushes (not PRs)
+    if: github.event_name == 'push'
     needs: test
 
     steps:
