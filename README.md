@@ -110,7 +110,7 @@ Also enable **Anonymous sign-in** under Authentication → Configuration → Pro
 | Secret | Where to find it |
 |---|---|
 | `SUPABASE_ACCESS_TOKEN` | [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) |
-| `SUPABASE_DB_URL` | Project Settings → Database → Connection string (URI mode) |
+| `SUPABASE_PROJECT_ID` | Your project URL — `https://supabase.com/dashboard/project/`**`<this-part>`** |
 
 Add these under **GitHub repo → Settings → Secrets and variables → Actions**. Until they are set, the migrate job is skipped (tests still run).
 
