@@ -36,6 +36,9 @@ const PlayerContext = createContext(null)
 export function PlayerProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const wasPlayingRef = useRef(false)
+  // When set, the next track load will trigger play() automatically.
+  // Uses a ref so it's synchronous and accessible across callbacks.
+  const shouldAutoPlayRef = useRef(false)
 
   const handleStateChange = useCallback((ytState) => {
     if (ytState === YT_STATE.PLAYING) wasPlayingRef.current = true
@@ -54,9 +57,17 @@ export function PlayerProvider({ children }) {
   const { loadTrack, play, pause, seekTo, getCurrentTime, getDuration } =
     useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: handleStateChange })
 
-  // Load new track whenever currentTrack changes
+  // Load new track whenever currentTrack changes; auto-play if flagged
   useEffect(() => {
-    if (state.currentTrack) loadTrack(state.currentTrack.id)
+    if (!state.currentTrack) return
+    loadTrack(state.currentTrack.id)
+    if (shouldAutoPlayRef.current) {
+      shouldAutoPlayRef.current = false
+      // Small delay lets the YT player register the load before play() is called.
+      // Keeps us close enough to the original user gesture for iOS to allow playback.
+      const t = setTimeout(play, 100)
+      return () => clearTimeout(t)
+    }
   }, [state.currentTrack]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detect returning from background / lock screen
@@ -72,6 +83,7 @@ export function PlayerProvider({ children }) {
 
   const playQueue = useCallback((queue, index = 0) => {
     wasPlayingRef.current = false
+    shouldAutoPlayRef.current = true
     dispatch({ type: 'PLAY_QUEUE', queue, index })
   }, [])
 

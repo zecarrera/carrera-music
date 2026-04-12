@@ -130,7 +130,22 @@ export default function PlayerView({ onNavigate }) {
       </div>
 
       {queue.length > 1 && (
-        <p className="pv-queue">{queueIndex + 1} of {queue.length} in queue</p>
+        <div className="pv-up-next">
+          <p className="pv-queue-pos">{queueIndex + 1} of {queue.length} in queue</p>
+          {queueIndex < queue.length - 1 && (
+            <div className="pv-queue-list">
+              {queue.slice(queueIndex + 1).map((track, i) => (
+                <div key={track.id} className="pv-queue-item">
+                  <span className="pv-queue-num">{queueIndex + 2 + i}</span>
+                  <div className="pv-queue-info">
+                    <span className="pv-queue-title">{track.title}</span>
+                    {track.artist && <span className="pv-queue-artist">{track.artist}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

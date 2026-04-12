@@ -4,20 +4,18 @@
   gap: 12px;
   padding: 10px 16px;
   border-bottom: 1px solid #1a1a1a;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
+.track-item:active { background: #111; }
 .track-item.active { background: #111; }
 
 .track-play-btn {
   flex-shrink: 0;
   width: 52px;
   height: 40px;
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
   border-radius: 4px;
   overflow: hidden;
   position: relative;
