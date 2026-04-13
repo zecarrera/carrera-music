@@ -14,7 +14,7 @@ A mobile-first iOS PWA music player backed by YouTube, with playlist management 
 - **Playlists** — create, rename, delete playlists; add/remove tracks with a `+` / `✓` toggle on every track
 - **Library** — browse your saved playlists
 - **Persistent storage** — playlists sync to Supabase Postgres; anonymous sign-in on first load (no login required)
-- **Cross-device sync** — playlists follow your anonymous session (Phase 2 will add full auth)
+- **Cross-device sync** — create an account (email + password) in the Library tab to sync your library across devices
 - **Recent searches** — last 6 searches saved locally for quick re-use
 - **iOS safe-area** — respects notch and home indicator on all iPhone models
 - **PWA** — installable on iOS home screen, runs full-screen with a custom equalizer icon
@@ -28,7 +28,7 @@ A mobile-first iOS PWA music player backed by YouTube, with playlist management 
 | UI | React 18 + Vite 5 | Vite 5 used (Node 22.1.0 incompatible with Vite 8+) |
 | Styling | Plain CSS | No UI framework; mobile-first, dark theme |
 | Music | YouTube IFrame API | Search via YouTube Data API v3 |
-| Auth | Supabase Auth (anonymous) | Persistent anonymous session; upgrade path to email/Google |
+| Auth | Supabase Auth (anonymous + email/password) | Anonymous session on first load; upgrade to named account in Library tab |
 | Database | Supabase Postgres | Playlists + tracks with Row-Level Security |
 | Client SDK | `@supabase/supabase-js` | Browser-side, safe with RLS |
 | Hosting | Vercel | Static deploy + env var management |
@@ -46,7 +46,7 @@ src/
     PlayerBar.jsx          Mini now-playing bar (hidden in PlayerView)
     TrackItem.jsx          Single track row used in search + playlists
   context/
-    AuthContext.jsx        Supabase anonymous sign-in, exposes user/loading
+    AuthContext.jsx        Anonymous sign-in on load; signUp/signIn/signOut methods; isAnonymous flag
     PlayerContext.jsx      YouTube IFrame player state + queue management
     PlaylistContext.jsx    Playlist CRUD — optimistic local + Supabase sync
   lib/
@@ -139,7 +139,7 @@ vercel --prebuilt --prod
 ## Known limitations
 
 - **Lock-screen playback** — YouTube IFrame API is suspended by iOS when the screen locks. Full lock-screen audio requires a provider with direct stream URLs. See `FINDINGS.md` for full analysis.
-- **Cross-device sync** — currently tied to the anonymous Supabase session per browser. Full cross-device sync requires email/Google sign-in (planned Phase 2).
+- **Cross-device sync** — create an account via Library tab → "Create account". Uses `supabase.auth.updateUser` to upgrade the anonymous session in-place, so your existing playlists carry over automatically. Sign in on any device to access your library.
 - **YouTube API quota** — the Data API has a daily quota. Searches are cached in-memory per session to reduce calls.
 
 ---
@@ -170,7 +170,8 @@ npm run test:coverage # generate coverage report
 | `src/__tests__/utils.test.js` | Unit | `formatDuration`, `fmt`, `loadRecent`, `saveRecent` |
 | `src/__tests__/reducer.test.js` | Unit | PlaylistContext reducer (7 actions) + PlayerContext reducer (`PLAY_QUEUE`, `SET_INDEX`/jumpTo, `SET_YT_STATE`) |
 | `src/components/TrackItem.test.jsx` | Component | Render, tap-to-play, add/remove buttons stop propagation, playing indicator |
-| `src/components/AddToPlaylistBtn.test.jsx` | Component | +/✓ toggle, dropdown, add/remove flow |
+| `src/components/AddToPlaylistBtn.test.jsx` | Component | +/✓ toggle, multi-playlist picker, per-row checkmarks, dropdown direction |
+| `src/components/AuthModal.test.jsx` | Component | Tab render, tab switching, signIn/signUp calls, error display, dismiss |
 | `src/components/BottomNav.test.jsx` | Component | 3 tabs, active state, playing dot, navigation |
 | `src/components/PlayerBar.test.jsx` | Component | Null guard, track info, play/pause, prev/next |
 | `src/context/PlaylistContext.test.jsx` | Integration | CRUD, isTrackSaved, removeTrackFromAll, localStorage |
