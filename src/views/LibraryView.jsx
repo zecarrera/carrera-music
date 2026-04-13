@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { usePlaylists } from '../context/PlaylistContext.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
+import AuthModal from '../components/AuthModal.jsx'
 import './LibraryView.css'
 
 export default function LibraryView({ onOpenPlaylist }) {
   const { playlists, createPlaylist } = usePlaylists()
+  const { user, isAnonymous, signOut } = useAuth()
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const [authModal, setAuthModal] = useState(null) // 'signin' | 'signup' | null
 
   function handleCreate(e) {
     e.preventDefault()
@@ -20,6 +24,27 @@ export default function LibraryView({ onOpenPlaylist }) {
       <div className="library-header">
         <h2 className="library-title">Your Library</h2>
         <button className="new-playlist-btn" onClick={() => setCreating(v => !v)}>＋ New</button>
+      </div>
+
+      <div className="library-auth-row">
+        {isAnonymous ? (
+          <>
+            <span className="library-auth-label">🔒 Anonymous</span>
+            <button className="library-auth-cta" onClick={() => setAuthModal('signup')}>
+              Create account
+            </button>
+            <button className="library-auth-link" onClick={() => setAuthModal('signin')}>
+              Sign in
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="library-auth-label">📧 {user?.email}</span>
+            <button className="library-auth-link" onClick={signOut}>
+              Sign out
+            </button>
+          </>
+        )}
       </div>
 
       {creating && (
@@ -58,6 +83,13 @@ export default function LibraryView({ onOpenPlaylist }) {
           </li>
         ))}
       </ul>
+
+      {authModal && (
+        <AuthModal
+          initialTab={authModal}
+          onDismiss={() => setAuthModal(null)}
+        />
+      )}
     </div>
   )
 }
