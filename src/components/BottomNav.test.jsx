@@ -4,23 +4,27 @@ import BottomNav from './BottomNav.jsx'
 
 vi.mock('../lib/supabase.js', () => ({ supabase: null }))
 
-// Mutable player state so individual tests can override it
 const playerState = { currentTrack: null, isPlaying: false }
-
 vi.mock('../context/PlayerContext.jsx', () => ({
   usePlayer: () => playerState,
 }))
 
+const authState = { isAnonymous: true }
+vi.mock('../context/AuthContext.jsx', () => ({
+  useAuth: () => authState,
+}))
+
 describe('BottomNav', () => {
-  it('renders all three tabs', () => {
-    render(<BottomNav activeView="search" onNavigate={vi.fn()} />)
+  it('renders all four tabs', () => {
+    render(<BottomNav activeView="search" onNavigate={vi.fn()} onOpenAccount={vi.fn()} />)
     expect(screen.getByText('Search')).toBeInTheDocument()
     expect(screen.getByText('Player')).toBeInTheDocument()
     expect(screen.getByText('Library')).toBeInTheDocument()
+    expect(screen.getByText('Sign in')).toBeInTheDocument()
   })
 
   it('marks the active tab', () => {
-    render(<BottomNav activeView="library" onNavigate={vi.fn()} />)
+    render(<BottomNav activeView="library" onNavigate={vi.fn()} onOpenAccount={vi.fn()} />)
     const libraryBtn = screen.getByText('Library').closest('button')
     expect(libraryBtn).toHaveClass('active')
     const searchBtn = screen.getByText('Search').closest('button')
@@ -29,7 +33,7 @@ describe('BottomNav', () => {
 
   it('calls onNavigate with correct view when tabs clicked', () => {
     const onNavigate = vi.fn()
-    render(<BottomNav activeView="search" onNavigate={onNavigate} />)
+    render(<BottomNav activeView="search" onNavigate={onNavigate} onOpenAccount={vi.fn()} />)
     fireEvent.click(screen.getByText('Library').closest('button'))
     expect(onNavigate).toHaveBeenCalledWith('library')
     fireEvent.click(screen.getByText('Search').closest('button'))
@@ -39,10 +43,32 @@ describe('BottomNav', () => {
   it('shows playing dot when isPlaying and currentTrack present', () => {
     playerState.currentTrack = { id: 'yt1', title: 'Song', thumbnail: null }
     playerState.isPlaying = true
-    render(<BottomNav activeView="search" onNavigate={vi.fn()} />)
+    render(<BottomNav activeView="search" onNavigate={vi.fn()} onOpenAccount={vi.fn()} />)
     expect(document.querySelector('.playing-dot')).toBeInTheDocument()
-    // reset
     playerState.currentTrack = null
     playerState.isPlaying = false
+  })
+
+  it('shows "Sign in" label and no signed-in class when anonymous', () => {
+    authState.isAnonymous = true
+    render(<BottomNav activeView="search" onNavigate={vi.fn()} onOpenAccount={vi.fn()} />)
+    expect(screen.getByText('Sign in')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign in/i })).not.toHaveClass('nav-btn-signed-in')
+  })
+
+  it('shows "Account" label and signed-in class when logged in', () => {
+    authState.isAnonymous = false
+    render(<BottomNav activeView="search" onNavigate={vi.fn()} onOpenAccount={vi.fn()} />)
+    expect(screen.getByText('Account')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /account/i })).toHaveClass('nav-btn-signed-in')
+    authState.isAnonymous = true
+  })
+
+  it('calls onOpenAccount when account tab clicked', () => {
+    authState.isAnonymous = true
+    const onOpenAccount = vi.fn()
+    render(<BottomNav activeView="search" onNavigate={vi.fn()} onOpenAccount={onOpenAccount} />)
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    expect(onOpenAccount).toHaveBeenCalled()
   })
 })

@@ -1,0 +1,25 @@
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background: #0f0f0f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.splash-icon-wrap {
+  animation: splash-pulse 1.2s ease-in-out infinite;
+}
+
+.splash-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  display: block;
+}
+
+@keyframes splash-pulse {
+  0%, 100% { transform: scale(1);   opacity: 1;    }
+  50%       { transform: scale(1.1); opacity: 0.75; }
+}

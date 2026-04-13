@@ -1,0 +1,51 @@
+.acct-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 500;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.acct-sheet {
+  background: #1a1a1a;
+  border-radius: 18px 18px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.acct-email {
+  font-size: 0.95rem;
+  color: #ccc;
+  padding: 4px 0 8px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.acct-signout {
+  background: #2a2a2a;
+  border: none;
+  border-radius: 10px;
+  color: #e05252;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.acct-dismiss {
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 0.85rem;
+  text-align: center;
+  cursor: pointer;
+  padding: 4px;
+  -webkit-tap-highlight-color: transparent;
+}

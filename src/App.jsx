@@ -2,17 +2,26 @@ import { useState } from 'react'
 import { PlayerProvider } from './context/PlayerContext.jsx'
 import { PlaylistProvider } from './context/PlaylistContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { useAuth } from './context/AuthContext.jsx'
 import SearchView from './views/SearchView.jsx'
 import LibraryView from './views/LibraryView.jsx'
 import PlaylistView from './views/PlaylistView.jsx'
 import PlayerView from './views/PlayerView.jsx'
 import PlayerBar from './components/PlayerBar.jsx'
 import BottomNav from './components/BottomNav.jsx'
+import AuthModal from './components/AuthModal.jsx'
+import AccountSheet from './components/AccountSheet.jsx'
+import SplashScreen from './components/SplashScreen.jsx'
 import './App.css'
 
 function AppShell() {
+  const { loading, isAnonymous } = useAuth()
   const [activeView, setActiveView] = useState('search')
   const [openPlaylistId, setOpenPlaylistId] = useState(null)
+  const [showAuth, setShowAuth] = useState(false)
+  const [showAccount, setShowAccount] = useState(false)
+
+  if (loading) return <SplashScreen />
 
   function handleNavigate(view) {
     setActiveView(view)
@@ -27,6 +36,14 @@ function AppShell() {
   function handleBackFromPlaylist() {
     setOpenPlaylistId(null)
     setActiveView('library')
+  }
+
+  function handleOpenAccount() {
+    if (isAnonymous) {
+      setShowAuth(true)
+    } else {
+      setShowAccount(true)
+    }
   }
 
   return (
@@ -52,7 +69,14 @@ function AppShell() {
       </div>
 
       {activeView !== 'player' && <PlayerBar onOpenPlayer={() => handleNavigate('player')} />}
-      <BottomNav activeView={activeView === 'playlist' ? 'library' : activeView} onNavigate={handleNavigate} />
+      <BottomNav
+        activeView={activeView === 'playlist' ? 'library' : activeView}
+        onNavigate={handleNavigate}
+        onOpenAccount={handleOpenAccount}
+      />
+
+      {showAuth && <AuthModal initialTab="signup" onDismiss={() => setShowAuth(false)} />}
+      {showAccount && <AccountSheet onDismiss={() => setShowAccount(false)} />}
     </div>
   )
 }

@@ -1,8 +1,10 @@
 import { usePlayer } from '../context/PlayerContext.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 import './BottomNav.css'
 
-export default function BottomNav({ activeView, onNavigate }) {
+export default function BottomNav({ activeView, onNavigate, onOpenAccount }) {
   const { currentTrack, isPlaying } = usePlayer()
+  const { isAnonymous } = useAuth()
 
   return (
     <nav className="bottom-nav">
@@ -47,6 +49,26 @@ export default function BottomNav({ activeView, onNavigate }) {
           </svg>
         </span>
         <span className="nav-label">Library</span>
+      </button>
+
+      <button
+        className={`nav-btn nav-btn-account ${!isAnonymous ? 'nav-btn-signed-in' : ''}`}
+        onClick={onOpenAccount}
+        aria-label={isAnonymous ? 'Sign in' : 'Account'}
+      >
+        <span className="nav-icon">
+          {isAnonymous ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+            </svg>
+          )}
+        </span>
+        <span className="nav-label">{isAnonymous ? 'Sign in' : 'Account'}</span>
       </button>
     </nav>
   )
