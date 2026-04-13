@@ -1,5 +1,7 @@
 # Carrera Music
 
+**Live:** https://carrera-music.vercel.app/
+
 A mobile-first iOS PWA music player backed by YouTube, with playlist management and cross-device persistence via Supabase.
 
 ---
