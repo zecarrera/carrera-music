@@ -101,3 +101,30 @@
   padding: 4px;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Email confirmation screen */
+.auth-modal-confirm {
+  text-align: center;
+  gap: 16px;
+}
+
+.auth-confirm-icon {
+  font-size: 2.5rem;
+}
+
+.auth-confirm-title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #f0f0f0;
+}
+
+.auth-confirm-body {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #888;
+  line-height: 1.5;
+}
+
+.auth-confirm-body strong {
+  color: #ccc;
+}

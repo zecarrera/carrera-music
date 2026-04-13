@@ -53,14 +53,28 @@ describe('AuthModal', () => {
     await waitFor(() => expect(onDismiss).toHaveBeenCalled())
   })
 
-  it('calls signUp on submit in create account tab', async () => {
+  it('calls signUp on submit in create account tab and shows confirmation screen', async () => {
     const onDismiss = vi.fn()
     render(<AuthModal initialTab="signup" onDismiss={onDismiss} />)
     fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'new@b.com' } })
     fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'pass123' } })
     fireEvent.submit(document.querySelector('.auth-form'))
     await waitFor(() => expect(mockSignUp).toHaveBeenCalledWith('new@b.com', 'pass123'))
-    await waitFor(() => expect(onDismiss).toHaveBeenCalled())
+    // Should show confirmation screen, not dismiss
+    expect(await screen.findByText(/check your email/i)).toBeInTheDocument()
+    expect(screen.getByText(/new@b\.com/i)).toBeInTheDocument()
+    expect(onDismiss).not.toHaveBeenCalled()
+  })
+
+  it('calls onDismiss when "Continue for now" is clicked on confirmation screen', async () => {
+    const onDismiss = vi.fn()
+    render(<AuthModal initialTab="signup" onDismiss={onDismiss} />)
+    fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'new@b.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'pass123' } })
+    fireEvent.submit(document.querySelector('.auth-form'))
+    await screen.findByText(/check your email/i)
+    fireEvent.click(screen.getByRole('button', { name: /continue for now/i }))
+    expect(onDismiss).toHaveBeenCalled()
   })
 
   it('shows error message when signIn fails', async () => {
