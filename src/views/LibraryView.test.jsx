@@ -15,7 +15,7 @@ vi.mock('../context/PlaylistContext.jsx', () => ({
 }))
 
 const TRACKS = [
-  { id: 'v1', title: 'Track 1', thumbnail: null },
+  { id: 'v1', title: 'Track 1', thumbnail: 'https://img.example.com/v1.jpg' },
   { id: 'v2', title: 'Track 2', thumbnail: null },
   { id: 'v3', title: 'Track 3', thumbnail: null },
 ]
@@ -29,7 +29,7 @@ beforeEach(() => {
 describe('LibraryView', () => {
   it('renders empty state when no playlists', () => {
     render(<LibraryView onOpenPlaylist={vi.fn()} />)
-    expect(screen.getByText(/your library is empty/i)).toBeInTheDocument()
+    expect(screen.getByText(/your playlists are empty/i)).toBeInTheDocument()
   })
 
   it('renders playlist cards with name and track count', () => {
@@ -80,5 +80,20 @@ describe('LibraryView', () => {
     playlistsState.playlists = [{ id: 'p1', name: 'Solo', tracks: [TRACKS[0]] }]
     render(<LibraryView onOpenPlaylist={vi.fn()} />)
     expect(screen.getByText('1 track')).toBeInTheDocument()
+  })
+
+  it('shows first track thumbnail as playlist icon when available', () => {
+    playlistsState.playlists = [{ id: 'p1', name: 'Chill', tracks: TRACKS }]
+    render(<LibraryView onOpenPlaylist={vi.fn()} />)
+    const img = document.querySelector('.playlist-icon-img')
+    expect(img).toBeInTheDocument()
+    expect(img).toHaveAttribute('src', TRACKS[0].thumbnail)
+  })
+
+  it('shows emoji fallback when no tracks have a thumbnail', () => {
+    const noThumbTracks = TRACKS.map(t => ({ ...t, thumbnail: null }))
+    playlistsState.playlists = [{ id: 'p1', name: 'Chill', tracks: noThumbTracks }]
+    render(<LibraryView onOpenPlaylist={vi.fn()} />)
+    expect(document.querySelector('.playlist-icon-img')).not.toBeInTheDocument()
   })
 })

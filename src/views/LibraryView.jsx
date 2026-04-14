@@ -29,7 +29,7 @@ export default function LibraryView({ onOpenPlaylist }) {
   return (
     <div className="library-view">
       <div className="library-header">
-        <h2 className="library-title">Your Library</h2>
+        <h2 className="library-title">Your Playlists</h2>
         <button className="new-playlist-btn" onClick={() => setCreating(v => !v)}>＋ New</button>
       </div>
 
@@ -52,7 +52,7 @@ export default function LibraryView({ onOpenPlaylist }) {
       {playlists.length === 0 && !creating && (
         <div className="library-empty">
           <div className="library-empty-icon">🎵</div>
-          <p>Your library is empty.</p>
+          <p>Your playlists are empty.</p>
           <p>Tap <strong>＋ New</strong> to create a playlist, then search for songs to add.</p>
         </div>
       )}
@@ -60,7 +60,12 @@ export default function LibraryView({ onOpenPlaylist }) {
       <ul className="playlist-list">
         {playlists.map(pl => (
           <li key={pl.id} className="playlist-card" onClick={() => onOpenPlaylist(pl.id)}>
-            <div className="playlist-icon">🎵</div>
+            <div className="playlist-icon">
+              {pl.tracks[0]?.thumbnail
+                ? <img src={pl.tracks[0].thumbnail} alt="" className="playlist-icon-img" />
+                : <span className="playlist-icon-emoji">🎵</span>
+              }
+            </div>
             <div className="playlist-info">
               <span className="playlist-name">{pl.name}</span>
               <span className="playlist-count">{pl.tracks.length} track{pl.tracks.length !== 1 ? 's' : ''}</span>
