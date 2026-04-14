@@ -286,3 +286,35 @@
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Browse playlists button */
+.pv-browse-playlists {
+  padding: 16px 0 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.pv-browse-playlists-btn {
+  background: none;
+  border: 1px solid var(--divider, #2a2a2a);
+  border-radius: 20px;
+  color: var(--text-secondary, #aaa);
+  font-size: 14px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.pv-browse-playlists-btn:hover,
+.pv-browse-playlists-btn:active {
+  color: var(--text-primary, #fff);
+  border-color: var(--text-secondary, #aaa);
+}
+
+/* Empty state secondary CTA */
+.pv-empty-cta--secondary {
+  background: none;
+  border: 1px solid var(--divider, #2a2a2a);
+  color: var(--text-secondary, #aaa);
+  margin-top: 8px;
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { usePlayer } from '../context/PlayerContext.jsx'
 import AddToPlaylistBtn from '../components/AddToPlaylistBtn.jsx'
+import PlaylistSearchSheet from '../components/PlaylistSearchSheet.jsx'
 import './PlayerView.css'
 
 function fmt(s) {
@@ -51,6 +52,7 @@ export default function PlayerView({ onNavigate }) {
   const [progress, setProgress] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [showPlaylistSearch, setShowPlaylistSearch] = useState(false)
   const intervalRef = useRef(null)
 
   useEffect(() => {
@@ -75,6 +77,10 @@ export default function PlayerView({ onNavigate }) {
         <button className="pv-empty-cta" onClick={() => onNavigate('search')}>
           Search for music
         </button>
+        <button className="pv-empty-cta pv-empty-cta--secondary" onClick={() => setShowPlaylistSearch(true)}>
+          Browse playlists
+        </button>
+        {showPlaylistSearch && <PlaylistSearchSheet onClose={() => setShowPlaylistSearch(false)} />}
       </div>
     )
   }
@@ -155,6 +161,14 @@ export default function PlayerView({ onNavigate }) {
           )}
         </div>
       )}
+
+      <div className="pv-browse-playlists">
+        <button className="pv-browse-playlists-btn" onClick={() => setShowPlaylistSearch(true)}>
+          🎵 Search YouTube playlist
+        </button>
+      </div>
+
+      {showPlaylistSearch && <PlaylistSearchSheet onClose={() => setShowPlaylistSearch(false)} />}
     </div>
   )
 }
