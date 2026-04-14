@@ -2,9 +2,9 @@ import { PROVIDERS } from './types.js'
 
 const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY
 
-// In-memory search cache (query → results, max 20 entries)
+// In-memory search cache (query|pageToken → result, max 40 entries)
 const searchCache = new Map()
-const CACHE_MAX = 20
+const CACHE_MAX = 40
 
 function durationToSeconds(iso) {
   const match = iso?.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
@@ -19,10 +19,10 @@ function mapApiError(status) {
   return `YouTube API error (${status}). Please try again.`
 }
 
-async function search(query) {
+async function search(query, pageToken = null) {
   if (!API_KEY) throw new Error('YouTube API key is not configured. Add VITE_YOUTUBE_API_KEY to your .env file.')
 
-  const cacheKey = query.toLowerCase().trim()
+  const cacheKey = `${query.toLowerCase().trim()}|${pageToken ?? ''}`
   if (searchCache.has(cacheKey)) return searchCache.get(cacheKey)
 
   const searchUrl = new URL('https://www.googleapis.com/youtube/v3/search')
@@ -32,6 +32,7 @@ async function search(query) {
   searchUrl.searchParams.set('videoCategoryId', '10')
   searchUrl.searchParams.set('maxResults', '10')
   searchUrl.searchParams.set('key', API_KEY)
+  if (pageToken) searchUrl.searchParams.set('pageToken', pageToken)
 
   let res
   try {
@@ -71,13 +72,15 @@ async function search(query) {
     providerId: PROVIDERS.YOUTUBE,
   }))
 
+  const result = { tracks: results, nextPageToken: data.nextPageToken ?? null }
+
   // Store in cache, evict oldest if over limit
   if (searchCache.size >= CACHE_MAX) {
     searchCache.delete(searchCache.keys().next().value)
   }
-  searchCache.set(cacheKey, results)
+  searchCache.set(cacheKey, result)
 
-  return results
+  return result
 }
 
 export const youtubeProvider = { search }

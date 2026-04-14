@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { youtubeProvider } from '../providers/youtubeProvider.js'
 import TrackItem from '../components/TrackItem.jsx'
 import './SearchView.css'
@@ -17,21 +17,50 @@ export default function SearchView() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
   const [searched, setSearched] = useState(false)
   const [recent, setRecent] = useState(loadRecent)
+  const [nextPageToken, setNextPageToken] = useState(null)
   const debounceRef = useRef(null)
+  const activeQueryRef = useRef('')
+  const sentinelRef = useRef(null)
+
+  const loadMore = useCallback(async () => {
+    if (!nextPageToken || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const { tracks, nextPageToken: newToken } = await youtubeProvider.search(activeQueryRef.current, nextPageToken)
+      setResults(prev => [...prev, ...tracks])
+      setNextPageToken(newToken)
+    } catch { /* silently ignore load-more failures */ } finally {
+      setLoadingMore(false)
+    }
+  }, [nextPageToken, loadingMore])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) loadMore() },
+      { rootMargin: '120px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [loadMore])
 
   const runSearch = useCallback(async (q) => {
     const trimmed = q.trim()
     if (!trimmed) return
+    activeQueryRef.current = trimmed
     setLoading(true)
     setError(null)
     setSearched(true)
+    setNextPageToken(null)
     try {
-      const tracks = await youtubeProvider.search(trimmed)
+      const { tracks, nextPageToken: token } = await youtubeProvider.search(trimmed)
       setResults(tracks)
-      // Save to recent
+      setNextPageToken(token)
       setRecent(prev => {
         const next = [trimmed, ...prev.filter(r => r !== trimmed)].slice(0, 6)
         saveRecent(next)
@@ -65,6 +94,7 @@ export default function SearchView() {
     setResults([])
     setSearched(false)
     setError(null)
+    setNextPageToken(null)
   }
 
   function handleRecent(q) {
@@ -145,6 +175,13 @@ export default function SearchView() {
             showAdd
           />
         ))}
+
+        {nextPageToken && <div ref={sentinelRef} className="load-more-sentinel" />}
+        {loadingMore && (
+          <div className="load-more-indicator">
+            <span className="spin">⟳</span>
+          </div>
+        )}
       </div>
     </div>
   )

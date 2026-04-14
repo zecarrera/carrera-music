@@ -150,3 +150,14 @@
 }
 .recent-item:active { background: #1a1a1a; }
 .recent-icon { font-size: 0.85rem; }
+
+/* Infinite scroll */
+.load-more-sentinel { height: 1px; }
+.load-more-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #555;
+  font-size: 1.5rem;
+}
