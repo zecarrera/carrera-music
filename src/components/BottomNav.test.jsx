@@ -20,7 +20,7 @@ describe('BottomNav', () => {
     expect(screen.getByText('Search')).toBeInTheDocument()
     expect(screen.getByText('Player')).toBeInTheDocument()
     expect(screen.getByText('Playlists')).toBeInTheDocument()
-    expect(screen.getByText('Sign in')).toBeInTheDocument()
+    expect(screen.getByText('Login')).toBeInTheDocument()
   })
 
   it('marks the active tab', () => {
@@ -49,18 +49,18 @@ describe('BottomNav', () => {
     playerState.isPlaying = false
   })
 
-  it('shows "Sign in" label and no signed-in class when anonymous', () => {
+  it('shows "Login" label and no signed-in class when anonymous', () => {
     authState.isAnonymous = true
     render(<BottomNav activeView="search" onNavigate={vi.fn()} onOpenAccount={vi.fn()} />)
-    expect(screen.getByText('Sign in')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sign in/i })).not.toHaveClass('nav-btn-signed-in')
+    expect(screen.getByText('Login')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /login/i })).not.toHaveClass('nav-btn-signed-in')
   })
 
-  it('shows "Account" label and signed-in class when logged in', () => {
+  it('shows "Logout" label and signed-in class when logged in', () => {
     authState.isAnonymous = false
     render(<BottomNav activeView="search" onNavigate={vi.fn()} onOpenAccount={vi.fn()} />)
-    expect(screen.getByText('Account')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /account/i })).toHaveClass('nav-btn-signed-in')
+    expect(screen.getByText('Logout')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /logout/i })).toHaveClass('nav-btn-signed-in')
     authState.isAnonymous = true
   })
 
@@ -68,7 +68,7 @@ describe('BottomNav', () => {
     authState.isAnonymous = true
     const onOpenAccount = vi.fn()
     render(<BottomNav activeView="search" onNavigate={vi.fn()} onOpenAccount={onOpenAccount} />)
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    fireEvent.click(screen.getByRole('button', { name: /login/i }))
     expect(onOpenAccount).toHaveBeenCalled()
   })
 })

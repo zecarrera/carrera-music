@@ -54,7 +54,7 @@ export default function BottomNav({ activeView, onNavigate, onOpenAccount }) {
       <button
         className={`nav-btn nav-btn-account ${!isAnonymous ? 'nav-btn-signed-in' : ''}`}
         onClick={onOpenAccount}
-        aria-label={isAnonymous ? 'Sign in' : 'Account'}
+        aria-label={isAnonymous ? 'Login' : 'Logout'}
       >
         <span className="nav-icon">
           {isAnonymous ? (
@@ -68,7 +68,7 @@ export default function BottomNav({ activeView, onNavigate, onOpenAccount }) {
             </svg>
           )}
         </span>
-        <span className="nav-label">{isAnonymous ? 'Sign in' : 'Account'}</span>
+        <span className="nav-label">{isAnonymous ? 'Login' : 'Logout'}</span>
       </button>
     </nav>
   )
