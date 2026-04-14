@@ -11,8 +11,8 @@
 .view-area {
   flex: 1;
   overflow: hidden;
-  /* Leave room for PlayerBar (60px) + BottomNav (60px) */
-  padding-bottom: 120px;
+  /* Leave room for PlayerBar (60px) + BottomNav (60px) + safe-area */
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Scrollable view content */

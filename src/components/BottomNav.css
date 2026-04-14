@@ -3,18 +3,20 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: calc(60px + env(safe-area-inset-bottom, 0px));
   background: rgba(15,15,15,0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid #1e1e1e;
   display: flex;
+  align-items: flex-start;
   z-index: 60;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .nav-btn {
   flex: 1;
+  height: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
