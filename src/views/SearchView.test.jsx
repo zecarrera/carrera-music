@@ -14,8 +14,14 @@ vi.mock('../context/PlaylistContext.jsx', () => ({
 }))
 
 const mockSearch = vi.fn()
+const mockSearchPlaylists = vi.fn()
+const mockFetchPlaylistTracks = vi.fn()
 vi.mock('../providers/youtubeProvider.js', () => ({
-  youtubeProvider: { search: (...args) => mockSearch(...args) },
+  youtubeProvider: {
+    search: (...args) => mockSearch(...args),
+    searchPlaylists: (...args) => mockSearchPlaylists(...args),
+    fetchPlaylistTracks: (...args) => mockFetchPlaylistTracks(...args),
+  },
 }))
 
 const PAGE1 = {
@@ -33,6 +39,18 @@ const PAGE2 = {
   nextPageToken: null,
 }
 
+const PLAYLISTS_PAGE1 = {
+  playlists: [
+    { id: 'pl1', title: 'Top Hits', channelTitle: 'Music Ch', thumbnail: null, itemCount: 20 },
+    { id: 'pl2', title: 'Chill Mix', channelTitle: 'Relax Ch', thumbnail: null, itemCount: 10 },
+  ],
+  nextPageToken: null,
+}
+
+const SAMPLE_TRACKS = [
+  { id: 'vid1', title: 'Track A', artist: 'X', thumbnail: null, thumbnailMedium: null, duration: 180, providerId: 'youtube' },
+]
+
 // Minimal IntersectionObserver mock
 let observerCallback = null
 const observeSpy = vi.fn()
@@ -43,6 +61,8 @@ beforeEach(() => {
   observeSpy.mockClear()
   disconnectSpy.mockClear()
   mockSearch.mockClear()
+  mockSearchPlaylists.mockClear()
+  mockFetchPlaylistTracks.mockClear()
   playQueue.mockClear()
   localStorage.clear()
 
@@ -66,6 +86,18 @@ describe('SearchView', () => {
     expect(screen.getByText(/search for any song or artist/i)).toBeInTheDocument()
   })
 
+  it('shows Songs and Playlists mode tabs', () => {
+    render(<SearchView />)
+    expect(screen.getByRole('tab', { name: /songs/i })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /playlists/i })).toBeInTheDocument()
+  })
+
+  it('Songs tab is active by default', () => {
+    render(<SearchView />)
+    expect(screen.getByRole('tab', { name: /songs/i })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: /playlists/i })).toHaveAttribute('aria-selected', 'false')
+  })
+
   it('shows results after a successful search', async () => {
     mockSearch.mockResolvedValueOnce(PAGE1)
     render(<SearchView />)
@@ -83,7 +115,6 @@ describe('SearchView', () => {
     fireEvent.submit(screen.getByRole('button', { name: /🔍/ }).closest('form'))
     await waitFor(() => expect(screen.getByText('Song 1')).toBeInTheDocument())
 
-    // Sentinel should be mounted since nextPageToken exists; trigger intersection
     await act(async () => { triggerIntersection() })
     await waitFor(() => expect(screen.getByText('Song 3')).toBeInTheDocument())
 
@@ -100,7 +131,6 @@ describe('SearchView', () => {
     fireEvent.submit(screen.getByRole('button', { name: /🔍/ }).closest('form'))
     await waitFor(() => expect(screen.getByText('Song 1')).toBeInTheDocument())
 
-    // Sentinel should NOT be in DOM when no nextPageToken
     expect(document.querySelector('.load-more-sentinel')).not.toBeInTheDocument()
     await act(async () => { triggerIntersection() })
     expect(mockSearch).toHaveBeenCalledTimes(1)
@@ -138,5 +168,75 @@ describe('SearchView', () => {
     fireEvent.submit(screen.getByRole('button', { name: /🔍/ }).closest('form'))
     await waitFor(() => expect(screen.getByText('New Song')).toBeInTheDocument())
     expect(screen.queryByText('Song 1')).not.toBeInTheDocument()
+  })
+
+  // ── Playlist mode ────────────────────────────────────────────────────────────
+
+  it('switching to Playlists tab clears query and results', async () => {
+    mockSearch.mockResolvedValueOnce(PAGE1)
+    render(<SearchView />)
+    fireEvent.change(screen.getByPlaceholderText(/search songs/i), { target: { value: 'rock' } })
+    fireEvent.submit(screen.getByRole('button', { name: /🔍/ }).closest('form'))
+    await waitFor(() => expect(screen.getByText('Song 1')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('tab', { name: /playlists/i }))
+    expect(screen.queryByText('Song 1')).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/search playlists/i)).toHaveValue('')
+  })
+
+  it('shows playlist empty hint when in Playlists mode with no recent', () => {
+    render(<SearchView />)
+    fireEvent.click(screen.getByRole('tab', { name: /playlists/i }))
+    expect(screen.getByText(/search for any youtube playlist/i)).toBeInTheDocument()
+  })
+
+  it('searches playlists and renders playlist cards', async () => {
+    mockSearchPlaylists.mockResolvedValueOnce(PLAYLISTS_PAGE1)
+    render(<SearchView />)
+    fireEvent.click(screen.getByRole('tab', { name: /playlists/i }))
+    fireEvent.change(screen.getByPlaceholderText(/search playlists/i), { target: { value: 'chill' } })
+    await act(async () => { fireEvent.submit(screen.getByPlaceholderText(/search playlists/i).closest('form')) })
+    await waitFor(() => expect(screen.getByText('Top Hits')).toBeInTheDocument())
+    expect(screen.getByText('Chill Mix')).toBeInTheDocument()
+    expect(mockSearchPlaylists).toHaveBeenCalledWith('chill')
+  })
+
+  it('tapping a playlist card fetches tracks and calls playQueue', async () => {
+    mockSearchPlaylists.mockResolvedValueOnce(PLAYLISTS_PAGE1)
+    mockFetchPlaylistTracks.mockResolvedValueOnce(SAMPLE_TRACKS)
+    render(<SearchView />)
+    fireEvent.click(screen.getByRole('tab', { name: /playlists/i }))
+    fireEvent.change(screen.getByPlaceholderText(/search playlists/i), { target: { value: 'hits' } })
+    await act(async () => { fireEvent.submit(screen.getByPlaceholderText(/search playlists/i).closest('form')) })
+    await waitFor(() => screen.getByText('Top Hits'))
+
+    await act(async () => { fireEvent.click(screen.getByText('Top Hits').closest('button')) })
+    await waitFor(() => {
+      expect(mockFetchPlaylistTracks).toHaveBeenCalledWith('pl1')
+      expect(playQueue).toHaveBeenCalledWith(SAMPLE_TRACKS, 0)
+    })
+  })
+
+  it('shows error when playlist is empty or private', async () => {
+    mockSearchPlaylists.mockResolvedValueOnce(PLAYLISTS_PAGE1)
+    mockFetchPlaylistTracks.mockResolvedValueOnce([])
+    render(<SearchView />)
+    fireEvent.click(screen.getByRole('tab', { name: /playlists/i }))
+    fireEvent.change(screen.getByPlaceholderText(/search playlists/i), { target: { value: 'hits' } })
+    await act(async () => { fireEvent.submit(screen.getByPlaceholderText(/search playlists/i).closest('form')) })
+    await waitFor(() => screen.getByText('Top Hits'))
+
+    await act(async () => { fireEvent.click(screen.getByText('Top Hits').closest('button')) })
+    await waitFor(() => expect(screen.getByText(/empty or private/i)).toBeInTheDocument())
+    expect(playQueue).not.toHaveBeenCalled()
+  })
+
+  it('shows no playlists found message for empty playlist search', async () => {
+    mockSearchPlaylists.mockResolvedValueOnce({ playlists: [], nextPageToken: null })
+    render(<SearchView />)
+    fireEvent.click(screen.getByRole('tab', { name: /playlists/i }))
+    fireEvent.change(screen.getByPlaceholderText(/search playlists/i), { target: { value: 'xyznotfound' } })
+    await act(async () => { fireEvent.submit(screen.getByPlaceholderText(/search playlists/i).closest('form')) })
+    await waitFor(() => expect(screen.getByText(/no playlists found/i)).toBeInTheDocument())
   })
 })

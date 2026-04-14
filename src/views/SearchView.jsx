@@ -1,38 +1,71 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { youtubeProvider } from '../providers/youtubeProvider.js'
+import { usePlayer } from '../context/PlayerContext.jsx'
 import TrackItem from '../components/TrackItem.jsx'
 import './SearchView.css'
 
-const RECENT_KEY = 'cm_recent_searches'
+const RECENT_SONGS_KEY = 'cm_recent_searches'
+const RECENT_PLAYLISTS_KEY = 'cm_recent_playlist_searches'
 const DEBOUNCE_MS = 400
 
-function loadRecent() {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') } catch { return [] }
+function loadRecent(key) {
+  try { return JSON.parse(localStorage.getItem(key) ?? '[]') } catch { return [] }
 }
-function saveRecent(searches) {
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(searches.slice(0, 6))) } catch { /* ignore */ }
+function saveRecent(key, searches) {
+  try { localStorage.setItem(key, JSON.stringify(searches.slice(0, 6))) } catch { /* ignore */ }
 }
 
 export default function SearchView() {
+  const { playQueue } = usePlayer()
+  const [mode, setMode] = useState('songs') // 'songs' | 'playlists'
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [loadingPlaylist, setLoadingPlaylist] = useState(null)
   const [error, setError] = useState(null)
   const [searched, setSearched] = useState(false)
-  const [recent, setRecent] = useState(loadRecent)
+  const [recentSongs, setRecentSongs] = useState(() => loadRecent(RECENT_SONGS_KEY))
+  const [recentPlaylists, setRecentPlaylists] = useState(() => loadRecent(RECENT_PLAYLISTS_KEY))
   const [nextPageToken, setNextPageToken] = useState(null)
   const debounceRef = useRef(null)
   const activeQueryRef = useRef('')
+  const modeRef = useRef(mode)
   const sentinelRef = useRef(null)
+
+  useEffect(() => { modeRef.current = mode }, [mode])
+
+  const recent = mode === 'songs' ? recentSongs : recentPlaylists
+
+  function resetSearch() {
+    clearTimeout(debounceRef.current)
+    setQuery('')
+    setResults([])
+    setSearched(false)
+    setError(null)
+    setNextPageToken(null)
+  }
+
+  function handleModeChange(newMode) {
+    if (newMode === mode) return
+    resetSearch()
+    setMode(newMode)
+  }
 
   const loadMore = useCallback(async () => {
     if (!nextPageToken || loadingMore) return
     setLoadingMore(true)
     try {
-      const { tracks, nextPageToken: newToken } = await youtubeProvider.search(activeQueryRef.current, nextPageToken)
-      setResults(prev => [...prev, ...tracks])
-      setNextPageToken(newToken)
+      const q = activeQueryRef.current
+      if (modeRef.current === 'songs') {
+        const { tracks, nextPageToken: newToken } = await youtubeProvider.search(q, nextPageToken)
+        setResults(prev => [...prev, ...tracks])
+        setNextPageToken(newToken)
+      } else {
+        const { playlists, nextPageToken: newToken } = await youtubeProvider.searchPlaylists(q, nextPageToken)
+        setResults(prev => [...prev, ...playlists])
+        setNextPageToken(newToken)
+      }
     } catch { /* silently ignore load-more failures */ } finally {
       setLoadingMore(false)
     }
@@ -49,7 +82,7 @@ export default function SearchView() {
     return () => observer.disconnect()
   }, [loadMore])
 
-  const runSearch = useCallback(async (q) => {
+  const runSearch = useCallback(async (q, searchMode) => {
     const trimmed = q.trim()
     if (!trimmed) return
     activeQueryRef.current = trimmed
@@ -58,14 +91,25 @@ export default function SearchView() {
     setSearched(true)
     setNextPageToken(null)
     try {
-      const { tracks, nextPageToken: token } = await youtubeProvider.search(trimmed)
-      setResults(tracks)
-      setNextPageToken(token)
-      setRecent(prev => {
-        const next = [trimmed, ...prev.filter(r => r !== trimmed)].slice(0, 6)
-        saveRecent(next)
-        return next
-      })
+      if (searchMode === 'songs') {
+        const { tracks, nextPageToken: token } = await youtubeProvider.search(trimmed)
+        setResults(tracks)
+        setNextPageToken(token)
+        setRecentSongs(prev => {
+          const next = [trimmed, ...prev.filter(r => r !== trimmed)].slice(0, 6)
+          saveRecent(RECENT_SONGS_KEY, next)
+          return next
+        })
+      } else {
+        const { playlists, nextPageToken: token } = await youtubeProvider.searchPlaylists(trimmed)
+        setResults(playlists)
+        setNextPageToken(token)
+        setRecentPlaylists(prev => {
+          const next = [trimmed, ...prev.filter(r => r !== trimmed)].slice(0, 6)
+          saveRecent(RECENT_PLAYLISTS_KEY, next)
+          return next
+        })
+      }
     } catch (e) {
       setError(e.message)
       setResults([])
@@ -79,14 +123,14 @@ export default function SearchView() {
     setQuery(val)
     clearTimeout(debounceRef.current)
     if (val.trim().length >= 3) {
-      debounceRef.current = setTimeout(() => runSearch(val), DEBOUNCE_MS)
+      debounceRef.current = setTimeout(() => runSearch(val, modeRef.current), DEBOUNCE_MS)
     }
   }
 
   function handleSubmit(e) {
     e.preventDefault()
     clearTimeout(debounceRef.current)
-    runSearch(query)
+    runSearch(query, mode)
   }
 
   function handleClear() {
@@ -99,29 +143,76 @@ export default function SearchView() {
 
   function handleRecent(q) {
     setQuery(q)
-    runSearch(q)
+    runSearch(q, mode)
   }
+
+  async function handleSelectPlaylist(playlist) {
+    if (loadingPlaylist) return
+    setLoadingPlaylist(playlist.id)
+    try {
+      const tracks = await youtubeProvider.fetchPlaylistTracks(playlist.id)
+      if (tracks.length > 0) {
+        playQueue(tracks, 0)
+      } else {
+        setError('This playlist appears to be empty or private.')
+      }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoadingPlaylist(null)
+    }
+  }
+
+  const isSongs = mode === 'songs'
+  const placeholder = isSongs ? 'Search songs, artists…' : 'Search playlists…'
+  const emptyHint = isSongs
+    ? 'Search for any song or artist to start listening.'
+    : 'Search for any YouTube playlist to start listening.'
+  const noResultsMsg = isSongs
+    ? `No results found for "${query}".`
+    : `No playlists found for "${query}".`
 
   return (
     <div className="search-view">
-      <form className="search-bar" onSubmit={handleSubmit}>
-        <input
-          type="search"
-          className="search-input"
-          placeholder="Search songs, artists…"
-          value={query}
-          onChange={handleInputChange}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-        />
-        {query && (
-          <button type="button" className="clear-btn" onClick={handleClear} aria-label="Clear">✕</button>
-        )}
-        <button type="submit" className="search-btn" disabled={loading || !query.trim()}>
-          {loading ? <span className="spin">⟳</span> : '🔍'}
-        </button>
-      </form>
+      <div className="search-header">
+        <form className="search-bar" onSubmit={handleSubmit}>
+          <input
+            type="search"
+            className="search-input"
+            placeholder={placeholder}
+            value={query}
+            onChange={handleInputChange}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          {query && (
+            <button type="button" className="clear-btn" onClick={handleClear} aria-label="Clear">✕</button>
+          )}
+          <button type="submit" className="search-btn" disabled={loading || !query.trim()}>
+            {loading ? <span className="spin">⟳</span> : '🔍'}
+          </button>
+        </form>
+
+        <div className="search-mode-toggle" role="tablist" aria-label="Search mode">
+          <button
+            role="tab"
+            aria-selected={isSongs}
+            className={`mode-tab${isSongs ? ' mode-tab--active' : ''}`}
+            onClick={() => handleModeChange('songs')}
+          >
+            Songs
+          </button>
+          <button
+            role="tab"
+            aria-selected={!isSongs}
+            className={`mode-tab${!isSongs ? ' mode-tab--active' : ''}`}
+            onClick={() => handleModeChange('playlists')}
+          >
+            Playlists
+          </button>
+        </div>
+      </div>
 
       <div className="search-results">
         {loading && (
@@ -146,7 +237,7 @@ export default function SearchView() {
         )}
 
         {!loading && searched && results.length === 0 && !error && (
-          <p className="search-status">No results found for &ldquo;{query}&rdquo;.</p>
+          <p className="search-status">{noResultsMsg}</p>
         )}
 
         {!searched && !loading && recent.length > 0 && (
@@ -162,11 +253,11 @@ export default function SearchView() {
 
         {!searched && !loading && recent.length === 0 && (
           <div className="search-empty">
-            <p>Search for any song or artist to start listening.</p>
+            <p>{emptyHint}</p>
           </div>
         )}
 
-        {!loading && results.map((track, i) => (
+        {!loading && isSongs && results.map((track, i) => (
           <TrackItem
             key={track.id}
             track={track}
@@ -174,6 +265,32 @@ export default function SearchView() {
             queueIndex={i}
             showAdd
           />
+        ))}
+
+        {!loading && !isSongs && results.map(pl => (
+          <button
+            key={pl.id}
+            className={`sv-playlist-card${loadingPlaylist === pl.id ? ' sv-playlist-card--loading' : ''}`}
+            onClick={() => handleSelectPlaylist(pl)}
+            disabled={!!loadingPlaylist}
+          >
+            <div className="sv-card-thumb">
+              {pl.thumbnail
+                ? <img src={pl.thumbnail} alt="" className="sv-card-thumb-img" />
+                : <span className="sv-card-thumb-placeholder">🎵</span>
+              }
+            </div>
+            <div className="sv-card-info">
+              <span className="sv-card-title">{pl.title}</span>
+              <span className="sv-card-meta">{pl.channelTitle}{pl.itemCount != null ? ` · ${pl.itemCount} tracks` : ''}</span>
+            </div>
+            <div className="sv-card-action">
+              {loadingPlaylist === pl.id
+                ? <span className="spin">⟳</span>
+                : <span className="sv-play-icon">▶</span>
+              }
+            </div>
+          </button>
         ))}
 
         {nextPageToken && <div ref={sentinelRef} className="load-more-sentinel" />}
