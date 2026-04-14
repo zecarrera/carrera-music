@@ -89,5 +89,31 @@
 .playlist-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .playlist-name { font-size: 0.92rem; font-weight: 600; color: #f0f0f0; }
 .playlist-count { font-size: 0.75rem; color: #666; }
+.playlist-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.playlist-play-btn,
+.playlist-shuffle-btn {
+  background: none;
+  border: 1px solid #333;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1db954;
+  font-size: 0.8rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.playlist-play-btn:active,
+.playlist-shuffle-btn:active { background: #1a1a1a; }
+
 .playlist-chevron { color: #444; font-size: 1.3rem; }
 

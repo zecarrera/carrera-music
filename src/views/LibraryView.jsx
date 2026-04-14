@@ -1,9 +1,20 @@
 import { useState } from 'react'
 import { usePlaylists } from '../context/PlaylistContext.jsx'
+import { usePlayer } from '../context/PlayerContext.jsx'
 import './LibraryView.css'
+
+function shuffleArray(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
 
 export default function LibraryView({ onOpenPlaylist }) {
   const { playlists, createPlaylist } = usePlaylists()
+  const { playQueue } = usePlayer()
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
 
@@ -54,6 +65,20 @@ export default function LibraryView({ onOpenPlaylist }) {
               <span className="playlist-name">{pl.name}</span>
               <span className="playlist-count">{pl.tracks.length} track{pl.tracks.length !== 1 ? 's' : ''}</span>
             </div>
+            {pl.tracks.length > 0 && (
+              <div className="playlist-card-actions">
+                <button
+                  className="playlist-play-btn"
+                  aria-label="Play all"
+                  onClick={e => { e.stopPropagation(); playQueue(pl.tracks, 0) }}
+                >▶</button>
+                <button
+                  className="playlist-shuffle-btn"
+                  aria-label="Shuffle play"
+                  onClick={e => { e.stopPropagation(); playQueue(shuffleArray(pl.tracks), 0) }}
+                >🔀</button>
+              </div>
+            )}
             <span className="playlist-chevron">›</span>
           </li>
         ))}
