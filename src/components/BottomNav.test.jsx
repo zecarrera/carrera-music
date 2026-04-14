@@ -19,13 +19,13 @@ describe('BottomNav', () => {
     render(<BottomNav activeView="search" onNavigate={vi.fn()} onOpenAccount={vi.fn()} />)
     expect(screen.getByText('Search')).toBeInTheDocument()
     expect(screen.getByText('Player')).toBeInTheDocument()
-    expect(screen.getByText('Library')).toBeInTheDocument()
+    expect(screen.getByText('Playlists')).toBeInTheDocument()
     expect(screen.getByText('Sign in')).toBeInTheDocument()
   })
 
   it('marks the active tab', () => {
     render(<BottomNav activeView="library" onNavigate={vi.fn()} onOpenAccount={vi.fn()} />)
-    const libraryBtn = screen.getByText('Library').closest('button')
+    const libraryBtn = screen.getByText('Playlists').closest('button')
     expect(libraryBtn).toHaveClass('active')
     const searchBtn = screen.getByText('Search').closest('button')
     expect(searchBtn).not.toHaveClass('active')
@@ -34,7 +34,7 @@ describe('BottomNav', () => {
   it('calls onNavigate with correct view when tabs clicked', () => {
     const onNavigate = vi.fn()
     render(<BottomNav activeView="search" onNavigate={onNavigate} onOpenAccount={vi.fn()} />)
-    fireEvent.click(screen.getByText('Library').closest('button'))
+    fireEvent.click(screen.getByText('Playlists').closest('button'))
     expect(onNavigate).toHaveBeenCalledWith('library')
     fireEvent.click(screen.getByText('Search').closest('button'))
     expect(onNavigate).toHaveBeenCalledWith('search')

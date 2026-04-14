@@ -48,7 +48,7 @@ export default function BottomNav({ activeView, onNavigate, onOpenAccount }) {
             <rect x="3" y="3" width="4" height="18" rx="1" fill="currentColor" stroke="none" opacity="0.4"/>
           </svg>
         </span>
-        <span className="nav-label">Library</span>
+        <span className="nav-label">Playlists</span>
       </button>
 
       <button
