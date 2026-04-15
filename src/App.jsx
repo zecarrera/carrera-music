@@ -48,9 +48,6 @@ function AppShell() {
 
   return (
     <div className="app-shell">
-      {/* Hidden YT player mount point — must always be in DOM */}
-      <div id="yt-player-mount" style={{ display: 'none' }} />
-
       <div className="view-area">
         {/* Always-mounted views — hidden with CSS to preserve state */}
         <div className={activeView === 'search' ? 'view-slot view-slot-active' : 'view-slot'}>
@@ -86,6 +83,12 @@ export default function App() {
     <AuthProvider>
       <PlaylistProvider>
         <PlayerProvider>
+          {/* Hidden YT player mount point — lives outside AppShell so it is always
+              in the DOM before the YouTube IFrame API fires onYouTubeIframeAPIReady.
+              AppShell shows <SplashScreen /> during auth, which would hide this div
+              and cause the one-time API callback to fire against a missing element,
+              silently breaking the player for the entire session. */}
+          <div id="yt-player-mount" style={{ display: 'none' }} />
           <AppShell />
         </PlayerProvider>
       </PlaylistProvider>
