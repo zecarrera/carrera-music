@@ -196,6 +196,36 @@
 
 .pv-btn-play:active { background: #17a349; }
 
+/* Secondary controls (repeat etc.) */
+.pv-secondary-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-shrink: 0;
+  margin-top: -4px;
+}
+
+.pv-btn-repeat {
+  background: none;
+  border: none;
+  color: #555;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: color 0.15s, background 0.15s;
+}
+
+.pv-btn-repeat:active { background: rgba(255,255,255,0.06); }
+.pv-btn-repeat--active { color: #1db954; }
+
 .pv-queue {
   font-size: 0.75rem;
   color: #555;

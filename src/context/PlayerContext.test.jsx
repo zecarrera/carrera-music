@@ -43,7 +43,7 @@ const TRACK_A = { id: 'aaaa', title: 'Track A', artist: 'Artist', thumbnail: '' 
 const TRACK_B = { id: 'bbbb', title: 'Track B', artist: 'Artist', thumbnail: '' }
 
 function TestConsumer() {
-  const { playQueue, next, prev, pause } = usePlayer()
+  const { playQueue, next, prev, pause, repeatMode, toggleRepeat } = usePlayer()
   return (
     <>
       <button onClick={() => playQueue([TRACK_A, TRACK_B], 0)}>playQueue</button>
@@ -51,6 +51,8 @@ function TestConsumer() {
       <button onClick={next}>next</button>
       <button onClick={prev}>prev</button>
       <button onClick={pause}>pause</button>
+      <button onClick={toggleRepeat}>toggleRepeat</button>
+      <span data-testid="repeat-mode">{repeatMode}</span>
     </>
   )
 }
@@ -149,5 +151,90 @@ describe('PlayerContext — auto-play', () => {
     act(() => { mockPlayer._fire(2) }) // PAUSED
 
     expect(mockPlayer.playVideo).not.toHaveBeenCalled()
+  })
+})
+
+describe('PlayerContext — repeat mode', () => {
+  it('defaults to none', async () => {
+    renderWithProvider()
+    await initPlayer()
+    expect(screen.getByTestId('repeat-mode').textContent).toBe('none')
+  })
+
+  it('toggleRepeat cycles none → all → one → none', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('toggleRepeat').click() })
+    expect(screen.getByTestId('repeat-mode').textContent).toBe('all')
+
+    act(() => { screen.getByText('toggleRepeat').click() })
+    expect(screen.getByTestId('repeat-mode').textContent).toBe('one')
+
+    act(() => { screen.getByText('toggleRepeat').click() })
+    expect(screen.getByTestId('repeat-mode').textContent).toBe('none')
+  })
+
+  it('repeat=none: does NOT advance or replay when last track ends', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    // queue with 2 tracks, start at track B (last)
+    act(() => { screen.getByText('playQueue').click() })
+    act(() => { screen.getByText('next').click() }) // now at TRACK_B (index 1)
+    act(() => { mockPlayer._fire(1) }) // PLAYING
+
+    mockPlayer.loadVideoById.mockClear()
+    act(() => { mockPlayer._fire(0) }) // ENDED
+
+    expect(mockPlayer.loadVideoById).not.toHaveBeenCalled()
+  })
+
+  it('repeat=all: wraps back to first track when last track ends', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playQueue').click() })
+    act(() => { screen.getByText('toggleRepeat').click() }) // → all
+
+    act(() => { screen.getByText('next').click() }) // now at TRACK_B (last)
+    act(() => { mockPlayer._fire(1) }) // PLAYING
+
+    mockPlayer.loadVideoById.mockClear()
+    act(() => { mockPlayer._fire(0) }) // ENDED — should wrap to TRACK_A
+
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
+  })
+
+  it('repeat=all: advances normally when not at last track', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playQueue').click() }) // at TRACK_A (index 0)
+    act(() => { screen.getByText('toggleRepeat').click() }) // → all
+    act(() => { mockPlayer._fire(1) }) // PLAYING
+
+    mockPlayer.loadVideoById.mockClear()
+    act(() => { mockPlayer._fire(0) }) // ENDED — should advance to TRACK_B
+
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
+  })
+
+  it('repeat=one: restarts the same track when it ends', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playSingle').click() }) // only TRACK_A in queue
+    act(() => { screen.getByText('toggleRepeat').click() }) // none → all
+    act(() => { screen.getByText('toggleRepeat').click() }) // all → one
+    act(() => { mockPlayer._fire(1) }) // PLAYING
+
+    mockPlayer.seekTo.mockClear()
+    mockPlayer.playVideo.mockClear()
+    act(() => { mockPlayer._fire(0) }) // ENDED — should restart
+
+    expect(mockPlayer.seekTo).toHaveBeenCalledWith(0, true)
+    // playVideo is called by wantToPlay recovery or direct call
+    expect(mockPlayer.playVideo).toHaveBeenCalled()
   })
 })

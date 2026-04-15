@@ -42,11 +42,23 @@ const SpinnerIcon = () => (
   </svg>
 )
 
+const RepeatIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+  </svg>
+)
+
+const RepeatOneIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1l-2 1v1h1.5v4H13z"/>
+  </svg>
+)
+
 export default function PlayerView({ onNavigate }) {
   const {
     currentTrack, isPlaying, ytState,
     play, pause, next, prev, seekTo, getCurrentTime, getDuration,
-    queueIndex, queue, jumpTo,
+    queueIndex, queue, jumpTo, repeatMode, toggleRepeat,
   } = usePlayer()
 
   const [progress, setProgress] = useState(0)
@@ -133,6 +145,16 @@ export default function PlayerView({ onNavigate }) {
           {isBuffering ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
         </button>
         <button className="pv-btn" onClick={next} disabled={!hasNext} aria-label="Next"><NextIcon /></button>
+      </div>
+
+      <div className="pv-secondary-controls">
+        <button
+          className={`pv-btn-repeat${repeatMode !== 'none' ? ' pv-btn-repeat--active' : ''}`}
+          onClick={toggleRepeat}
+          aria-label={`Repeat: ${repeatMode}`}
+        >
+          {repeatMode === 'one' ? <RepeatOneIcon /> : <RepeatIcon />}
+        </button>
       </div>
 
       {queue.length > 1 && (

@@ -1,9 +1,12 @@
-import { createContext, useContext, useReducer, useCallback, useEffect } from 'react'
+import { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react'
 import { useYouTubePlayer } from '../hooks/useYouTubePlayer.js'
 import { useMediaSession } from '../hooks/useMediaSession.js'
 
 // YT player state codes
 const YT_STATE = { UNSTARTED: -1, ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3 }
+
+// Repeat modes
+const REPEAT_MODES = ['none', 'all', 'one']
 
 const initialState = {
   currentTrack: null,
@@ -31,6 +34,7 @@ const PlayerContext = createContext(null)
 
 export function PlayerProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
+  const [repeatMode, setRepeatModeState] = useState('none')
 
   const handleStateChange = useCallback((ytState) => {
     dispatch({ type: 'SET_YT_STATE', state: ytState })
@@ -59,13 +63,28 @@ export function PlayerProvider({ children }) {
     dispatch({ type: 'SET_INDEX', index })
   }, [])
 
-  // Auto-advance to next track when current track ends
+  const toggleRepeat = useCallback(() => {
+    setRepeatModeState((current) => {
+      const next = REPEAT_MODES[(REPEAT_MODES.indexOf(current) + 1) % REPEAT_MODES.length]
+      return next
+    })
+  }, [])
+
+  // Auto-advance (or repeat) when current track ends
   useEffect(() => {
-    if (state.ytState === YT_STATE.ENDED) {
-      const next = state.queueIndex + 1
-      if (next < state.queue.length) {
-        dispatch({ type: 'SET_INDEX', index: next })
-      }
+    if (state.ytState !== YT_STATE.ENDED) return
+
+    if (repeatMode === 'one') {
+      seekTo(0)
+      play()
+      return
+    }
+
+    const next = state.queueIndex + 1
+    if (next < state.queue.length) {
+      dispatch({ type: 'SET_INDEX', index: next })
+    } else if (repeatMode === 'all' && state.queue.length > 0) {
+      dispatch({ type: 'SET_INDEX', index: 0 })
     }
   }, [state.ytState]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -92,6 +111,8 @@ export function PlayerProvider({ children }) {
       queueIndex: state.queueIndex,
       ytState: state.ytState,
       isPlaying,
+      repeatMode,
+      toggleRepeat,
       playQueue,
       play,
       pause,
