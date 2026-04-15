@@ -40,13 +40,10 @@ export function PlayerProvider({ children }) {
     useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: handleStateChange })
 
   // Load and auto-play whenever currentTrack changes.
-  // Always schedule play() — the effect cleanup cancels stale timeouts so
-  // React StrictMode's double-invoke is handled correctly.
+  // useYouTubePlayer handles the auto-play via wantToPlayRef — no timeout needed.
   useEffect(() => {
     if (!state.currentTrack) return
     loadTrack(state.currentTrack.id)
-    const t = setTimeout(play, 100)
-    return () => clearTimeout(t)
   }, [state.currentTrack]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const playQueue = useCallback((queue, index = 0) => {

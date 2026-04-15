@@ -13,6 +13,7 @@ function makeMockPlayer() {
     getCurrentTime: vi.fn(() => 0),
     getDuration: vi.fn(() => 0),
     destroy: vi.fn(),
+    getIframe: vi.fn(() => document.createElement('iframe')),
   }
 }
 
@@ -28,7 +29,7 @@ function installYTMock(requireElement = false) {
     Player: vi.fn((containerId, opts) => {
       const el = document.getElementById(containerId)
       if (!requireElement || el) {
-        setTimeout(() => opts?.events?.onReady?.(), 0)
+        setTimeout(() => opts?.events?.onReady?.({ target: mockPlayer }), 0)
       }
       mockPlayer._fireStateChange = (state) => opts?.events?.onStateChange?.({ data: state })
       return mockPlayer
@@ -153,6 +154,65 @@ describe('useYouTubePlayer', () => {
 
     act(() => { result.current.pause() })
     expect(mockPlayer.pauseVideo).toHaveBeenCalledOnce()
+  })
+
+  // ── AUTO-PLAY RECOVERY (the new behaviour) ────────────────────────────────
+  /**
+   * On iOS Safari, loadVideoById() in a cross-origin iframe that hasn't received
+   * a direct user tap will load the video (BUFFERING) but then land on PAUSED
+   * instead of PLAYING because the browser blocks unmuted autoplay.
+   * The fix: when the player transitions to PAUSED right after loadTrack() was
+   * called (wantToPlayRef is true), immediately retry playVideo().
+   */
+  it('calls playVideo when video enters PAUSED after loadTrack (iOS autoplay recovery)', async () => {
+    addMountPoint()
+    const mockPlayer = installYTMock(/* requireElement */ true)
+
+    const { result } = renderHook(() =>
+      useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: vi.fn() })
+    )
+
+    act(() => { window.onYouTubeIframeAPIReady?.() })
+    await act(async () => { vi.runAllTimers() })
+
+    mockPlayer.playVideo.mockClear()
+
+    // Simulate user selecting a track
+    act(() => { result.current.loadTrack('dQw4w9WgXcQ') })
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith('dQw4w9WgXcQ')
+
+    // iOS flow: video loads but autoplay is blocked
+    act(() => { mockPlayer._fireStateChange(3) }) // BUFFERING
+    act(() => { mockPlayer._fireStateChange(2) }) // PAUSED (iOS blocked autoplay)
+
+    // Hook should have retried playVideo() automatically
+    expect(mockPlayer.playVideo).toHaveBeenCalledOnce()
+  })
+
+  it('does NOT retry playVideo when user explicitly pauses', async () => {
+    addMountPoint()
+    const mockPlayer = installYTMock(/* requireElement */ true)
+
+    const { result } = renderHook(() =>
+      useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: vi.fn() })
+    )
+
+    act(() => { window.onYouTubeIframeAPIReady?.() })
+    await act(async () => { vi.runAllTimers() })
+
+    // Track loads and plays
+    act(() => { result.current.loadTrack('dQw4w9WgXcQ') })
+    act(() => { mockPlayer._fireStateChange(3) }) // BUFFERING
+    act(() => { mockPlayer._fireStateChange(1) }) // PLAYING — clears wantToPlay
+
+    mockPlayer.playVideo.mockClear()
+
+    // User explicitly pauses
+    act(() => { result.current.pause() })
+    act(() => { mockPlayer._fireStateChange(2) }) // PAUSED (user action)
+
+    // Should NOT retry — user wants it paused
+    expect(mockPlayer.playVideo).not.toHaveBeenCalled()
   })
 
   it('destroys the player on unmount', async () => {
