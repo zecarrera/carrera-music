@@ -114,6 +114,13 @@ export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
     wantToPlayRef.current = true
     if (readyRef.current && playerRef.current) {
       playerRef.current.loadVideoById(videoId)
+      // Immediately call playVideo() while still in the user gesture chain.
+      // iOS Safari expires user activation after ~1 second; loadVideoById buffers
+      // the video (takes longer), so the iframe's internal autoplay attempt fires
+      // after activation expires and is blocked. Queuing playVideo() synchronously
+      // here — before activation expires — gives the iframe a play intent that it
+      // can honour when buffering completes, without needing a fresh gesture.
+      playerRef.current.playVideo()
     } else {
       pendingVideoRef.current = videoId
     }
