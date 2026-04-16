@@ -43,25 +43,27 @@ export function PlayerProvider({ children }) {
   const { loadTrack, play, pause, seekTo, getCurrentTime, getDuration } =
     useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: handleStateChange })
 
-  // Load and auto-play whenever currentTrack changes.
-  // useYouTubePlayer handles the auto-play via wantToPlayRef — no timeout needed.
-  useEffect(() => {
-    if (!state.currentTrack) return
-    loadTrack(state.currentTrack.id)
-  }, [state.currentTrack]) // eslint-disable-line react-hooks/exhaustive-deps
-
+  // Call loadTrack synchronously inside each user-gesture handler so iOS Safari
+  // keeps the gesture chain intact (useEffect runs async, breaking iOS autoplay).
   const playQueue = useCallback((queue, index = 0) => {
-    dispatch({ type: 'PLAY_QUEUE', queue, index })
-  }, [])
+    const idx = index ?? 0
+    if (queue[idx]) loadTrack(queue[idx].id)
+    dispatch({ type: 'PLAY_QUEUE', queue, index: idx })
+  }, [loadTrack])
 
   const handleNext = useCallback(() => {
     const next = state.queueIndex + 1
-    if (next < state.queue.length) dispatch({ type: 'SET_INDEX', index: next })
-  }, [state.queueIndex, state.queue.length])
+    if (next < state.queue.length) {
+      loadTrack(state.queue[next].id)
+      dispatch({ type: 'SET_INDEX', index: next })
+    }
+  }, [state.queueIndex, state.queue, loadTrack])
 
   const jumpTo = useCallback((index) => {
-    dispatch({ type: 'SET_INDEX', index })
-  }, [])
+    const idx = Math.max(0, Math.min(index, state.queue.length - 1))
+    if (state.queue[idx]) loadTrack(state.queue[idx].id)
+    dispatch({ type: 'SET_INDEX', index: idx })
+  }, [state.queue, loadTrack])
 
   const toggleRepeat = useCallback(() => {
     setRepeatModeState((current) => {
@@ -82,16 +84,21 @@ export function PlayerProvider({ children }) {
 
     const next = state.queueIndex + 1
     if (next < state.queue.length) {
+      loadTrack(state.queue[next].id)
       dispatch({ type: 'SET_INDEX', index: next })
     } else if (repeatMode === 'all' && state.queue.length > 0) {
+      loadTrack(state.queue[0].id)
       dispatch({ type: 'SET_INDEX', index: 0 })
     }
   }, [state.ytState]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePrev = useCallback(() => {
     const prev = state.queueIndex - 1
-    if (prev >= 0) dispatch({ type: 'SET_INDEX', index: prev })
-  }, [state.queueIndex])
+    if (prev >= 0) {
+      loadTrack(state.queue[prev].id)
+      dispatch({ type: 'SET_INDEX', index: prev })
+    }
+  }, [state.queueIndex, state.queue, loadTrack])
 
   const isPlaying = state.ytState === YT_STATE.PLAYING || state.ytState === YT_STATE.BUFFERING
 

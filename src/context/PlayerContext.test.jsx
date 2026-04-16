@@ -42,15 +42,19 @@ function installYTMock() {
 const TRACK_A = { id: 'aaaa', title: 'Track A', artist: 'Artist', thumbnail: '' }
 const TRACK_B = { id: 'bbbb', title: 'Track B', artist: 'Artist', thumbnail: '' }
 
+const TRACK_C = { id: 'cccc', title: 'Track C', artist: 'Artist', thumbnail: '' }
+
 function TestConsumer() {
-  const { playQueue, next, prev, pause, repeatMode, toggleRepeat } = usePlayer()
+  const { playQueue, next, prev, pause, jumpTo, repeatMode, toggleRepeat } = usePlayer()
   return (
     <>
+      <button onClick={() => playQueue([TRACK_A, TRACK_B, TRACK_C], 0)}>playQueue3</button>
       <button onClick={() => playQueue([TRACK_A, TRACK_B], 0)}>playQueue</button>
       <button onClick={() => playQueue([TRACK_A], 0)}>playSingle</button>
       <button onClick={next}>next</button>
       <button onClick={prev}>prev</button>
       <button onClick={pause}>pause</button>
+      <button onClick={() => jumpTo(2)}>jumpTo2</button>
       <button onClick={toggleRepeat}>toggleRepeat</button>
       <span data-testid="repeat-mode">{repeatMode}</span>
     </>
@@ -151,6 +155,69 @@ describe('PlayerContext — auto-play', () => {
     act(() => { mockPlayer._fire(2) }) // PAUSED
 
     expect(mockPlayer.playVideo).not.toHaveBeenCalled()
+  })
+})
+
+describe('PlayerContext — synchronous loadTrack in gesture handlers', () => {
+  /**
+   * On iOS Safari, loadVideoById() only autoplay-starts if called synchronously
+   * within a user gesture handler. React's useEffect runs asynchronously (after
+   * paint), breaking the gesture chain. These tests verify that each user-facing
+   * action calls loadVideoById BEFORE any async work (no timer flush needed).
+   */
+
+  it('playQueue calls loadVideoById synchronously — no timer flush required', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    // Do NOT flush timers after the click — if loadVideoById fires, it was synchronous
+    act(() => { screen.getByText('playQueue').click() })
+
+    // Must be called immediately, without needing vi.runAllTimers()
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
+  })
+
+  it('next() calls loadVideoById for the next track synchronously', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playQueue').click() })
+    act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
+
+    mockPlayer.loadVideoById.mockClear()
+
+    act(() => { screen.getByText('next').click() })
+
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
+  })
+
+  it('prev() calls loadVideoById for the previous track synchronously', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playQueue').click() })
+    act(() => { screen.getByText('next').click() }) // advance to TRACK_B
+    act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_B
+
+    mockPlayer.loadVideoById.mockClear()
+
+    act(() => { screen.getByText('prev').click() })
+
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
+  })
+
+  it('jumpTo() calls loadVideoById for the target track synchronously', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playQueue3').click() }) // 3-track queue
+    act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
+
+    mockPlayer.loadVideoById.mockClear()
+
+    act(() => { screen.getByText('jumpTo2').click() }) // jump to index 2 (TRACK_C)
+
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_C.id)
   })
 })
 
