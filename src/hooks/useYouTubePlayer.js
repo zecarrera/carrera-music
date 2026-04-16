@@ -39,6 +39,8 @@ export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
     function initPlayer() {
       if (playerRef.current) return
       playerRef.current = new window.YT.Player(containerId, {
+        height: '0',
+        width: '0',
         playerVars: {
           playsinline: 1,
           controls: 0,
