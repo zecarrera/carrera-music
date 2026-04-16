@@ -229,4 +229,40 @@ describe('useYouTubePlayer', () => {
     unmount()
     expect(mockPlayer.destroy).toHaveBeenCalledOnce()
   })
+
+  /**
+   * REGRESSION [iOS autoplay]: iOS Safari evaluates allow="autoplay" on an iframe
+   * at navigation time. Setting it via setAttribute in onReady is too late.
+   * initPlayer() intercepts document.createElement so allow is set on the iframe
+   * element BEFORE its src is assigned and before the browser starts navigation.
+   */
+  it('REGRESSION [iOS]: iframe created by YT.Player has allow="autoplay" set before src navigation', async () => {
+    addMountPoint()
+
+    // Mock that actually calls document.createElement('iframe') — simulating
+    // the real YT IFrame API so our intercept fires.
+    let createdIframe = null
+    window.YT = {
+      Player: vi.fn((containerId, opts) => {
+        const mockPlayer = makeMockPlayer()
+        const container = document.getElementById(containerId)
+        const iframe = document.createElement('iframe') // triggers our intercept
+        createdIframe = iframe
+        if (container) container.appendChild(iframe)
+        setTimeout(() => opts?.events?.onReady?.({ target: mockPlayer }), 0)
+        mockPlayer._fireStateChange = (state) => opts?.events?.onStateChange?.({ data: state })
+        return mockPlayer
+      }),
+    }
+
+    renderHook(() =>
+      useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: vi.fn() })
+    )
+
+    act(() => { window.onYouTubeIframeAPIReady?.() })
+
+    // The intercepted iframe must have allow="autoplay" set before src navigation
+    expect(createdIframe).not.toBeNull()
+    expect(createdIframe.getAttribute('allow')).toMatch(/autoplay/)
+  })
 })

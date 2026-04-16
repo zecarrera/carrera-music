@@ -17,10 +17,11 @@ function loadYouTubeApi() {
  * Exposes: loadTrack, play, pause, seekTo, getCurrentTime, getDuration.
  * Calls onStateChange(ytState) and onReady() callbacks.
  *
- * iOS autoplay: the mount point element must be a pre-existing <iframe> with
- * `allow="autoplay; encrypted-media"` set before the YT IFrame API navigates
- * it. iOS Safari evaluates that attribute at navigation time — setAttribute()
- * after the fact has no effect.
+ * iOS autoplay: the YouTube IFrame API creates the player <iframe> dynamically.
+ * iOS Safari evaluates allow="autoplay" at iframe navigation time — setting it
+ * via setAttribute() in onReady is too late. We intercept document.createElement
+ * immediately before calling new YT.Player() so allow is set on the iframe
+ * element before its src is assigned and the browser starts navigation.
  *
  * Auto-play recovery: loadTrack() sets a `wantToPlay` flag. If the player
  * enters PAUSED state while the flag is set (residual iOS block), playVideo()
@@ -38,6 +39,23 @@ export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
 
     function initPlayer() {
       if (playerRef.current) return
+
+      // Intercept the iframe the YT API creates and pre-set allow="autoplay;
+      // encrypted-media" before the browser starts navigation. iOS Safari
+      // evaluates the allow attribute at navigation time (when src is first set
+      // on an in-DOM iframe) — setting it afterwards via setAttribute has no
+      // effect. JavaScript is single-threaded so nothing else runs between
+      // installing this intercept and YT calling document.createElement('iframe').
+      const origCreateElement = document.createElement.bind(document)
+      document.createElement = (tag, ...args) => {
+        const el = origCreateElement(tag, ...args)
+        if (tag.toLowerCase() === 'iframe') {
+          el.setAttribute('allow', 'autoplay; encrypted-media')
+          document.createElement = origCreateElement // restore immediately
+        }
+        return el
+      }
+
       playerRef.current = new window.YT.Player(containerId, {
         height: '0',
         width: '0',
