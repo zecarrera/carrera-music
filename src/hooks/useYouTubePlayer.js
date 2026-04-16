@@ -60,6 +60,9 @@ export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
         height: '0',
         width: '0',
         playerVars: {
+          autoplay: 1,  // sets <video autoplay> in iframe; with allow="autoplay" on the
+                        // iframe element this is the HTML-attribute path iOS Safari is
+                        // more likely to honour than JS-triggered video.play() calls
           playsinline: 1,
           controls: 0,
           rel: 0,
