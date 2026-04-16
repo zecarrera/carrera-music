@@ -87,8 +87,16 @@ export default function App() {
               in the DOM before the YouTube IFrame API fires onYouTubeIframeAPIReady.
               AppShell shows <SplashScreen /> during auth, which would hide this div
               and cause the one-time API callback to fire against a missing element,
-              silently breaking the player for the entire session. */}
-          <div id="yt-player-mount" style={{ display: 'none' }} />
+              silently breaking the player for the entire session.
+              Using <iframe> (not <div>) so the YT IFrame API navigates it in-place,
+              preserving `allow="autoplay"` which iOS Safari evaluates at navigation
+              time. Setting allow via setAttribute() after the fact has no effect. */}
+          <iframe
+            id="yt-player-mount"
+            allow="autoplay; encrypted-media"
+            style={{ display: 'none' }}
+            title="YouTube Audio Player"
+          />
           <AppShell />
         </PlayerProvider>
       </PlaylistProvider>

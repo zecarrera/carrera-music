@@ -50,4 +50,22 @@ describe('App — player mount point', () => {
     // is missing, the player is never initialized and nothing plays.
     expect(document.getElementById('yt-player-mount')).not.toBeNull()
   })
+
+  /**
+   * REGRESSION [iOS autoplay]: iOS Safari evaluates the `allow` attribute on an
+   * iframe at navigation time (when the iframe src is loaded). Setting it
+   * programmatically after the fact (e.g. via setAttribute in onReady) has no
+   * effect. Without `allow="autoplay"` pre-set on the element, iOS Safari blocks
+   * programmatic playback regardless of whether it is called from a user-gesture
+   * handler — the video buffers then lands on PAUSED, requiring a second tap.
+   *
+   * Fix: use <iframe> instead of <div> so the YT IFrame API navigates an existing
+   * iframe element in-place, preserving the pre-set allow attribute.
+   */
+  it('REGRESSION [iOS]: yt-player-mount is an <iframe> with allow="autoplay" pre-set at element creation', () => {
+    render(<App />)
+    const el = document.getElementById('yt-player-mount')
+    expect(el?.tagName.toLowerCase()).toBe('iframe')
+    expect(el?.getAttribute('allow')).toMatch(/autoplay/)
+  })
 })

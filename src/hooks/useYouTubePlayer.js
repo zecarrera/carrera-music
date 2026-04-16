@@ -17,11 +17,15 @@ function loadYouTubeApi() {
  * Exposes: loadTrack, play, pause, seekTo, getCurrentTime, getDuration.
  * Calls onStateChange(ytState) and onReady() callbacks.
  *
+ * iOS autoplay: the mount point element must be a pre-existing <iframe> with
+ * `allow="autoplay; encrypted-media"` set before the YT IFrame API navigates
+ * it. iOS Safari evaluates that attribute at navigation time — setAttribute()
+ * after the fact has no effect.
+ *
  * Auto-play recovery: loadTrack() sets a `wantToPlay` flag. If the player
- * enters PAUSED state while the flag is set (iOS Safari blocks unmuted autoplay
- * in cross-origin iframes outside a gesture chain), playVideo() is retried
- * immediately. The flag is cleared when the player reaches PLAYING, or when
- * pause() is called explicitly by the user.
+ * enters PAUSED state while the flag is set (residual iOS block), playVideo()
+ * is retried immediately. The flag is cleared when the player reaches PLAYING,
+ * or when pause() is called explicitly by the user.
  */
 export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
   const playerRef = useRef(null)
@@ -35,8 +39,6 @@ export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
     function initPlayer() {
       if (playerRef.current) return
       playerRef.current = new window.YT.Player(containerId, {
-        height: '0',
-        width: '0',
         playerVars: {
           playsinline: 1,
           controls: 0,
@@ -46,12 +48,9 @@ export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
         },
         events: {
           onReady: (event) => {
-            // Grant programmatic autoplay permission so playVideo() calls work
-            // on iOS Safari without requiring a direct tap on the iframe.
-            event.target.getIframe?.()?.setAttribute('allow', 'autoplay')
             readyRef.current = true
             if (pendingVideoRef.current) {
-              playerRef.current.loadVideoById(pendingVideoRef.current)
+              event.target.loadVideoById(pendingVideoRef.current)
               pendingVideoRef.current = null
             }
             onReady?.()
