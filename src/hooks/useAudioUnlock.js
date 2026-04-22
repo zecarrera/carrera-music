@@ -1,13 +1,17 @@
 import { useEffect } from 'react'
 
+// Minimal 46-byte silent WAV (1 sample, 44100Hz, 16-bit mono)
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA=='
+
 /**
- * On the first user interaction (touch or click), plays a silent 1-frame audio
- * buffer via Web Audio API. This primes the iOS audio session so that
- * subsequent programmatic audio — including YouTube iframe playback — is less
- * likely to be blocked by the OS-level media activation requirement.
+ * Plays a silent sample via an HTMLMediaElement (not AudioContext) to activate
+ * iOS AVAudioSession on the first user interaction. HTMLMediaElement activation
+ * uses a different OS audio path than AudioContext, allowing cross-origin iframes
+ * with allow="autoplay" to participate in the same session.
  *
- * Must be called in a component that is mounted for the lifetime of the app
- * (e.g. App) so the listener is present before the user's very first tap.
+ * Called once on the first touch or click anywhere in the app.
+ * For gesture-specific unlocking (track tap, next, prev), see unlockAudio() in
+ * PlayerContext.jsx which fires on every relevant gesture.
  */
 export function useAudioUnlock() {
   useEffect(() => {
@@ -16,21 +20,7 @@ export function useAudioUnlock() {
     function unlock() {
       if (unlocked) return
       unlocked = true
-
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext
-        if (!AudioCtx) return
-        const ctx = new AudioCtx()
-        const buf = ctx.createBuffer(1, 1, 22050)
-        const src = ctx.createBufferSource()
-        src.buffer = buf
-        src.connect(ctx.destination)
-        src.start(0)
-        ctx.resume().catch(() => {})
-      } catch {
-        // Silently ignore — audio unlock is best-effort
-      }
-
+      unlockAudio()
       document.removeEventListener('touchstart', unlock, true)
       document.removeEventListener('click', unlock, true)
     }
@@ -43,4 +33,17 @@ export function useAudioUnlock() {
       document.removeEventListener('click', unlock, true)
     }
   }, [])
+}
+
+/**
+ * Plays a silent HTMLMediaElement sample to activate/refresh iOS AVAudioSession.
+ * Call this synchronously inside user gesture handlers before any deferred work.
+ */
+export function unlockAudio() {
+  try {
+    const audio = new Audio(SILENT_WAV)
+    audio.play().catch(() => {})
+  } catch {
+    // Best-effort — silently ignore if Audio is unavailable
+  }
 }

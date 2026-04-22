@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f0f0f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Music Spike" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <title>Carrera Music</title>
+    <!-- Keep YouTube player alive when screen locks / app backgrounds.
+         YouTube's iframe JS watches document.hidden and visibilityState —
+         it self-pauses the moment either becomes true/hidden.
+         We override both getters and intercept the visibilitychange event
+         (capture phase, before YouTube's listener) so the player never
+         learns the page went background.
+         Combined with UIBackgroundModes:audio + AVAudioSession(.playback)
+         in native code, this allows audio to continue on lock screen. -->
+    <script>
+      (function () {
+        try {
+          Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
+          Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+          // Swallow the event before any listener (including YouTube's) sees it
+          document.addEventListener('visibilitychange', function (e) {
+            e.stopImmediatePropagation();
+          }, true);
+        } catch (e) { /* silently ignore if browser blocks override */ }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-B_e7ZmmP.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CcaUXSUA.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

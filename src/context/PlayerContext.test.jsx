@@ -77,6 +77,9 @@ beforeEach(() => {
   delete window.onYouTubeIframeAPIReady
   document.getElementById('yt-api-script')?.remove()
 
+  // Stub Audio so unlockAudio() calls in gesture handlers don't fail in jsdom
+  vi.stubGlobal('Audio', vi.fn(() => ({ play: vi.fn().mockResolvedValue(undefined) })))
+
   // Provide mount point (normally in App.jsx outside AppShell)
   const el = document.createElement('div')
   el.id = 'yt-player-mount'
@@ -88,6 +91,7 @@ beforeEach(() => {
 afterEach(() => {
   document.getElementById('yt-player-mount')?.remove()
   vi.useRealTimers()
+  vi.unstubAllGlobals()
   delete window.YT
   delete window.onYouTubeIframeAPIReady
 })

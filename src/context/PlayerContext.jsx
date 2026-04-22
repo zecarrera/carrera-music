@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react'
 import { useYouTubePlayer } from '../hooks/useYouTubePlayer.js'
 import { useMediaSession } from '../hooks/useMediaSession.js'
+import { unlockAudio } from '../hooks/useAudioUnlock.js'
 
 // YT player state codes
 const YT_STATE = { UNSTARTED: -1, ENDED: 0, PLAYING: 1, PAUSED: 2, BUFFERING: 3 }
@@ -43,16 +44,17 @@ export function PlayerProvider({ children }) {
   const { loadTrack, play, pause, seekTo, getCurrentTime, getDuration } =
     useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: handleStateChange })
 
-  // Gesture handlers defer loadTrack to setTimeout(0) so loadVideoById reaches
-  // the iframe WITHOUT user-gesture propagation. When loadVideoById arrives with
-  // gesture activation, iOS consumes it on the video load, leaving nothing for
-  // autoplay. Running outside the gesture chain (like auto-advance from ENDED)
-  // lets the existing audio session carry autoplay via the autoplay:1 playerVar.
+  // Gesture handlers call unlockAudio() synchronously (within the user gesture
+  // activation window) to establish iOS AVAudioSession via HTMLMediaElement, then
+  // defer loadTrack to setTimeout(0). HTMLMediaElement activation uses a different
+  // OS audio path from AudioContext and may allow the YouTube iframe (with
+  // allow="autoplay") to autoplay within the established session.
   const playQueue = useCallback((queue, index = 0) => {
     const idx = index ?? 0
     dispatch({ type: 'PLAY_QUEUE', queue, index: idx })
     if (queue[idx]) {
       const videoId = queue[idx].id
+      unlockAudio()
       setTimeout(() => loadTrack(videoId), 0)
     }
   }, [loadTrack])
@@ -62,6 +64,7 @@ export function PlayerProvider({ children }) {
     if (next < state.queue.length) {
       const videoId = state.queue[next].id
       dispatch({ type: 'SET_INDEX', index: next })
+      unlockAudio()
       setTimeout(() => loadTrack(videoId), 0)
     }
   }, [state.queueIndex, state.queue, loadTrack])
@@ -71,6 +74,7 @@ export function PlayerProvider({ children }) {
     if (state.queue[idx]) {
       const videoId = state.queue[idx].id
       dispatch({ type: 'SET_INDEX', index: idx })
+      unlockAudio()
       setTimeout(() => loadTrack(videoId), 0)
     }
   }, [state.queue, loadTrack])
@@ -107,6 +111,7 @@ export function PlayerProvider({ children }) {
     if (prev >= 0) {
       const videoId = state.queue[prev].id
       dispatch({ type: 'SET_INDEX', index: prev })
+      unlockAudio()
       setTimeout(() => loadTrack(videoId), 0)
     }
   }, [state.queueIndex, state.queue, loadTrack])

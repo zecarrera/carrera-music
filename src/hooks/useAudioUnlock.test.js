@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
-import { useAudioUnlock } from './useAudioUnlock.js'
+import { renderHook, act } from '@testing-library/react'
+import { useAudioUnlock, unlockAudio } from './useAudioUnlock.js'
 
 describe('useAudioUnlock', () => {
   let addSpy, removeSpy
@@ -12,6 +12,7 @@ describe('useAudioUnlock', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('registers touchstart and click listeners on mount', () => {
@@ -29,49 +30,49 @@ describe('useAudioUnlock', () => {
     expect(removeSpy).toHaveBeenCalledWith('click', expect.any(Function), true)
   })
 
-  it('calls AudioContext and plays a silent buffer on first click', () => {
-    const mockStart = vi.fn()
-    const mockConnect = vi.fn()
-    const mockResume = vi.fn().mockResolvedValue(undefined)
-    const mockCreateBufferSource = vi.fn(() => ({ buffer: null, connect: mockConnect, start: mockStart }))
-    const mockCreateBuffer = vi.fn(() => ({}))
-    const mockCtx = {
-      createBuffer: mockCreateBuffer,
-      createBufferSource: mockCreateBufferSource,
-      destination: {},
-      resume: mockResume,
-    }
-    const MockAudioCtx = vi.fn(() => mockCtx)
-    vi.stubGlobal('AudioContext', MockAudioCtx)
+  it('plays a silent Audio element on first click', () => {
+    const mockPlay = vi.fn().mockResolvedValue(undefined)
+    const MockAudio = vi.fn(() => ({ play: mockPlay }))
+    vi.stubGlobal('Audio', MockAudio)
 
     renderHook(() => useAudioUnlock())
+    act(() => { document.dispatchEvent(new Event('click', { bubbles: true })) })
 
-    document.dispatchEvent(new Event('click', { bubbles: true }))
-
-    expect(MockAudioCtx).toHaveBeenCalledOnce()
-    expect(mockStart).toHaveBeenCalledOnce()
-    expect(mockResume).toHaveBeenCalledOnce()
-
-    vi.unstubAllGlobals()
+    expect(MockAudio).toHaveBeenCalledOnce()
+    expect(mockPlay).toHaveBeenCalledOnce()
   })
 
   it('only unlocks once even if multiple interactions occur', () => {
-    const MockAudioCtx = vi.fn(() => ({
-      createBuffer: vi.fn(() => ({})),
-      createBufferSource: vi.fn(() => ({ buffer: null, connect: vi.fn(), start: vi.fn() })),
-      destination: {},
-      resume: vi.fn().mockResolvedValue(undefined),
-    }))
-    vi.stubGlobal('AudioContext', MockAudioCtx)
+    const mockPlay = vi.fn().mockResolvedValue(undefined)
+    const MockAudio = vi.fn(() => ({ play: mockPlay }))
+    vi.stubGlobal('Audio', MockAudio)
 
     renderHook(() => useAudioUnlock())
 
-    document.dispatchEvent(new Event('click', { bubbles: true }))
-    document.dispatchEvent(new Event('click', { bubbles: true }))
-    document.dispatchEvent(new Event('touchstart', { bubbles: true }))
+    act(() => { document.dispatchEvent(new Event('click', { bubbles: true })) })
+    act(() => { document.dispatchEvent(new Event('click', { bubbles: true })) })
+    act(() => { document.dispatchEvent(new Event('touchstart', { bubbles: true })) })
 
-    expect(MockAudioCtx).toHaveBeenCalledOnce()
+    expect(MockAudio).toHaveBeenCalledOnce()
+  })
+})
 
-    vi.unstubAllGlobals()
+describe('unlockAudio', () => {
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('plays a silent Audio element', () => {
+    const mockPlay = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('Audio', vi.fn(() => ({ play: mockPlay })))
+
+    unlockAudio()
+
+    expect(mockPlay).toHaveBeenCalledOnce()
+  })
+
+  it('handles play() rejection silently', async () => {
+    const mockPlay = vi.fn().mockRejectedValue(new Error('NotAllowed'))
+    vi.stubGlobal('Audio', vi.fn(() => ({ play: mockPlay })))
+
+    await expect(async () => unlockAudio()).not.toThrow()
   })
 })
