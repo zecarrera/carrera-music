@@ -17,12 +17,11 @@ function loadYouTubeApi() {
  * Exposes: loadTrack, play, pause, seekTo, getCurrentTime, getDuration.
  * Calls onStateChange(ytState) and onReady() callbacks.
  *
- * iOS autoplay: the player mount point is pre-rendered as an <iframe> in JSX
- * with allow="autoplay; encrypted-media" already set. React guarantees the
- * attribute is present before any JS runs, so when the YouTube IFrame API sets
- * the iframe src (navigation time), iOS Safari evaluates allow="autoplay" and
- * grants the iframe unconditional autoplay permission — no user gesture required
- * for subsequent playVideo() calls from the main page via postMessage.
+ * iOS autoplay: the YouTube IFrame API creates the player <iframe> dynamically.
+ * iOS Safari evaluates allow="autoplay" at iframe navigation time — setting it
+ * via setAttribute() in onReady is too late. We intercept document.createElement
+ * immediately before calling new YT.Player() so allow is set on the iframe
+ * element before its src is assigned and the browser starts navigation.
  *
  * Auto-play recovery: loadTrack() sets a `wantToPlay` flag. If the player
  * enters PAUSED state while the flag is set (residual iOS block), playVideo()
@@ -40,6 +39,22 @@ export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
 
     function initPlayer() {
       if (playerRef.current) return
+
+      // Intercept the iframe the YT API creates and pre-set allow="autoplay;
+      // encrypted-media" before the browser starts navigation. iOS Safari
+      // evaluates the allow attribute at navigation time (when src is first set
+      // on an in-DOM iframe) — setting it afterwards via setAttribute has no
+      // effect. JavaScript is single-threaded so nothing else runs between
+      // installing this intercept and YT calling document.createElement('iframe').
+      const origCreateElement = document.createElement.bind(document)
+      document.createElement = (tag, ...args) => {
+        const el = origCreateElement(tag, ...args)
+        if (tag.toLowerCase() === 'iframe') {
+          el.setAttribute('allow', 'autoplay; encrypted-media')
+          document.createElement = origCreateElement // restore immediately
+        }
+        return el
+      }
 
       playerRef.current = new window.YT.Player(containerId, {
         height: '0',

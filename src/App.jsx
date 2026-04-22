@@ -83,18 +83,12 @@ export default function App() {
     <AuthProvider>
       <PlaylistProvider>
         <PlayerProvider>
-          {/* Pre-rendered iframe with allow="autoplay" guaranteed before YouTube sets src.
-              The YouTube IFrame API uses an existing <iframe> element directly (setting its
-              src) rather than creating a new one. React sets the allow attribute at render
-              time — before any JS runs — so iOS Safari evaluates it correctly at navigation
-              time. Using position:absolute/width:height 0 (not display:none) keeps the
-              element in layout so iOS treats its audio as a valid audio session. */}
-          <iframe
-            id="yt-player-mount"
-            allow="autoplay; encrypted-media"
-            title="YouTube player"
-            style={{ position: 'absolute', width: 0, height: 0, border: 'none', top: 0, left: 0 }}
-          />
+          {/* Hidden YT player mount point — lives outside AppShell so it is always
+              in the DOM before the YouTube IFrame API fires onYouTubeIframeAPIReady.
+              AppShell shows <SplashScreen /> during auth, which would hide this div
+              and cause the one-time API callback to fire against a missing element,
+              silently breaking the player for the entire session. */}
+          <div id="yt-player-mount" style={{ display: 'none' }} />
           <AppShell />
         </PlayerProvider>
       </PlaylistProvider>

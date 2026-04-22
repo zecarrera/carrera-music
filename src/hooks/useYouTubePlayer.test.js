@@ -60,9 +60,8 @@ describe('useYouTubePlayer', () => {
   })
 
   function addMountPoint() {
-    mountPoint = document.createElement('iframe')
+    mountPoint = document.createElement('div')
     mountPoint.id = 'yt-player-mount'
-    mountPoint.setAttribute('allow', 'autoplay; encrypted-media')
     document.body.appendChild(mountPoint)
     return mountPoint
   }
@@ -254,17 +253,28 @@ describe('useYouTubePlayer', () => {
 
   /**
    * REGRESSION [iOS autoplay]: iOS Safari evaluates allow="autoplay" on an iframe
-   * at navigation time (when src is set). The YouTube IFrame API creates its iframe
-   * asynchronously — after the YT.Player() constructor returns — so intercepting
-   * document.createElement is unreliable. The fix is to pre-render the <iframe>
-   * in JSX with allow="autoplay; encrypted-media" already set by React at mount
-   * time, before any JS runs. When the YT API later sets the iframe's src, the
-   * attribute is already there and iOS grants autoplay permission.
+   * at navigation time. Setting it via setAttribute in onReady is too late.
+   * initPlayer() intercepts document.createElement so allow is set on the iframe
+   * element BEFORE its src is assigned and before the browser starts navigation.
    */
-  it('REGRESSION [iOS]: yt-player-mount iframe already has allow="autoplay" before YT sets src', async () => {
-    const mountPoint = addMountPoint() // created with allow="autoplay; encrypted-media" (mirrors JSX)
+  it('REGRESSION [iOS]: iframe created by YT.Player has allow="autoplay" set before src navigation', async () => {
+    addMountPoint()
 
-    installYTMock(/* requireElement */ true)
+    // Mock that actually calls document.createElement('iframe') — simulating
+    // the real YT IFrame API so our intercept fires.
+    let createdIframe = null
+    window.YT = {
+      Player: vi.fn((containerId, opts) => {
+        const mockPlayer = makeMockPlayer()
+        const container = document.getElementById(containerId)
+        const iframe = document.createElement('iframe') // triggers our intercept
+        createdIframe = iframe
+        if (container) container.appendChild(iframe)
+        setTimeout(() => opts?.events?.onReady?.({ target: mockPlayer }), 0)
+        mockPlayer._fireStateChange = (state) => opts?.events?.onStateChange?.({ data: state })
+        return mockPlayer
+      }),
+    }
 
     renderHook(() =>
       useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: vi.fn() })
@@ -272,9 +282,8 @@ describe('useYouTubePlayer', () => {
 
     act(() => { window.onYouTubeIframeAPIReady?.() })
 
-    // The element must already carry allow="autoplay" before the YT API initialises.
-    // In production this is guaranteed by React rendering the <iframe> in JSX;
-    // in tests addMountPoint() mirrors that by setting the attribute at creation time.
-    expect(mountPoint.getAttribute('allow')).toMatch(/autoplay/)
+    // The intercepted iframe must have allow="autoplay" set before src navigation
+    expect(createdIframe).not.toBeNull()
+    expect(createdIframe.getAttribute('allow')).toMatch(/autoplay/)
   })
 })
