@@ -24,9 +24,10 @@ function loadYouTubeApi() {
  * element before its src is assigned and the browser starts navigation.
  *
  * Auto-play recovery: loadTrack() sets a `wantToPlay` flag. If the player
- * enters PAUSED state while the flag is set (residual iOS block), playVideo()
- * is retried immediately. The flag is cleared when the player reaches PLAYING,
- * or when pause() is called explicitly by the user.
+ * enters PAUSED (2) or VIDEO_CUED (5) state while the flag is set (iOS
+ * autoplay blocked — which state it produces depends on iOS version and
+ * buffering speed), playVideo() is retried immediately. The flag is cleared
+ * when the player reaches PLAYING, or when pause() is called explicitly.
  */
 export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
   const playerRef = useRef(null)
@@ -80,9 +81,11 @@ export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
           },
           onStateChange: (e) => {
             const state = e.data
-            // iOS autoplay recovery: if video lands on PAUSED and we intended
-            // to play (loadTrack was called), retry immediately.
-            if (state === 2 /* PAUSED */ && wantToPlayRef.current) {
+            // iOS autoplay recovery: if video lands on PAUSED or VIDEO_CUED and
+            // we intended to play (loadTrack was called), retry immediately.
+            // iOS may produce either state 2 (PAUSED) or state 5 (VIDEO_CUED)
+            // when autoplay is blocked — we handle both.
+            if ((state === 2 /* PAUSED */ || state === 5 /* VIDEO_CUED */) && wantToPlayRef.current) {
               playerRef.current?.playVideo()
             }
             if (state === 1 /* PLAYING */) {

@@ -210,6 +210,29 @@ describe('useYouTubePlayer', () => {
     expect(mockPlayer.playVideo).toHaveBeenCalledTimes(2)
   })
 
+  it('calls playVideo on VIDEO_CUED (5) recovery — iOS may use this state instead of PAUSED', async () => {
+    addMountPoint()
+    const mockPlayer = installYTMock(/* requireElement */ true)
+
+    const { result } = renderHook(() =>
+      useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: vi.fn() })
+    )
+
+    act(() => { window.onYouTubeIframeAPIReady?.() })
+    await act(async () => { vi.runAllTimers() })
+
+    mockPlayer.playVideo.mockClear()
+
+    act(() => { result.current.loadTrack('dQw4w9WgXcQ') })
+    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(1)
+
+    act(() => { mockPlayer._fireStateChange(3) })  // BUFFERING
+    act(() => { mockPlayer._fireStateChange(5) })  // VIDEO_CUED (iOS blocked autoplay)
+
+    // Recovery must also fire on VIDEO_CUED
+    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(2)
+  })
+
   it('does NOT retry playVideo when user explicitly pauses', async () => {
     addMountPoint()
     const mockPlayer = installYTMock(/* requireElement */ true)

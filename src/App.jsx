@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAudioUnlock } from './hooks/useAudioUnlock.js'
 import { PlayerProvider } from './context/PlayerContext.jsx'
 import { PlaylistProvider } from './context/PlaylistContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
@@ -79,6 +80,7 @@ function AppShell() {
 }
 
 export default function App() {
+  useAudioUnlock()
   return (
     <AuthProvider>
       <PlaylistProvider>
