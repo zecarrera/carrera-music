@@ -169,12 +169,8 @@ describe('PlayerContext — auto-play', () => {
 
 describe('PlayerContext — deferred loadTrack in gesture handlers', () => {
   /**
-   * Gesture handlers now defer loadTrack to setTimeout(0) so loadVideoById
-   * reaches the iframe WITHOUT user-gesture propagation. When sent with a
-   * gesture, iOS consumes the activation on the video-load operation, leaving
-   * none for autoplay. Running asynchronously (like the ENDED auto-advance path
-   * that always works) lets the existing audio session carry autoplay via
-   * the autoplay:1 playerVar.
+   * When getDuration() returns 0 (no track loaded), next/prev fall back to
+   * the deferred loadTrack path. playQueue and jumpTo always use this path.
    */
 
   it('playQueue defers loadVideoById — requires timer flush', async () => {
@@ -191,7 +187,7 @@ describe('PlayerContext — deferred loadTrack in gesture handlers', () => {
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
   })
 
-  it('next() defers loadVideoById for the next track', async () => {
+  it('next() defers loadVideoById for the next track when no duration available', async () => {
     renderWithProvider()
     await initPlayer()
 
@@ -208,7 +204,7 @@ describe('PlayerContext — deferred loadTrack in gesture handlers', () => {
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
   })
 
-  it('prev() defers loadVideoById for the previous track', async () => {
+  it('prev() defers loadVideoById for the previous track when no duration available', async () => {
     renderWithProvider()
     await initPlayer()
 
@@ -242,6 +238,88 @@ describe('PlayerContext — deferred loadTrack in gesture handlers', () => {
 
     await act(async () => { vi.runAllTimers() })
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_C.id)
+  })
+})
+
+describe('PlayerContext — seekTo trick for next/prev', () => {
+  /**
+   * When a track is loaded (getDuration() > 0), next() and prev() seek the
+   * current track to its end instead of calling loadVideoById directly.
+   * The resulting natural ENDED event triggers auto-advance, which is the
+   * only path that reliably autoplays on iOS. pendingNextRef stores the
+   * intended target so auto-advance loads the right track.
+   */
+
+  it('next() calls seekTo(duration) and play() instead of loadVideoById when track is loaded', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
+    act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
+
+    // Simulate a loaded track with known duration
+    mockPlayer.getDuration.mockReturnValue(180)
+    mockPlayer.loadVideoById.mockClear()
+    mockPlayer.seekTo.mockClear()
+
+    act(() => { screen.getByText('next').click() })
+
+    expect(mockPlayer.seekTo).toHaveBeenCalledWith(180, true)
+    expect(mockPlayer.playVideo).toHaveBeenCalled()
+    expect(mockPlayer.loadVideoById).not.toHaveBeenCalled()
+  })
+
+  it('next() loads correct track via auto-advance when ENDED fires after seekTo', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
+    act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
+
+    mockPlayer.getDuration.mockReturnValue(180)
+    mockPlayer.loadVideoById.mockClear()
+
+    act(() => { screen.getByText('next').click() }) // seekTo trick
+    act(() => { mockPlayer._fire(0) })              // ENDED fires naturally
+
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
+  })
+
+  it('prev() uses seekTo trick and loads previous track on ENDED', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
+    // Use fallback (getDuration=0) to advance to TRACK_B
+    act(() => { screen.getByText('next').click() })
+    await act(async () => { vi.runAllTimers() })
+    act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_B
+
+    mockPlayer.getDuration.mockReturnValue(240)
+    mockPlayer.loadVideoById.mockClear()
+
+    act(() => { screen.getByText('prev').click() }) // seekTo trick
+    act(() => { mockPlayer._fire(0) })              // ENDED fires naturally
+
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
+  })
+
+  it('natural ENDED (no seekTo trick) still advances to next track normally', async () => {
+    renderWithProvider()
+    await initPlayer()
+
+    act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
+    act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
+
+    mockPlayer.loadVideoById.mockClear()
+    act(() => { mockPlayer._fire(0) }) // ENDED naturally (no next/prev pressed)
+
+    // pendingNextRef is null — normal auto-advance fires
+    expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
   })
 })
 
