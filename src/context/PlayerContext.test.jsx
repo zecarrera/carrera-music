@@ -139,11 +139,11 @@ describe('PlayerContext — auto-play', () => {
 
     act(() => { screen.getByText('playQueue').click() })
     await act(async () => { vi.runAllTimers() })
-    act(() => { mockPlayer._fire(1) }) // PLAYING — track A playing
+    act(() => { mockPlayer._fire(1) }) // PLAYING — seekTo trick fires for next()
 
     mockPlayer.loadVideoById.mockClear()
-    act(() => { screen.getByText('next').click() })
-    await act(async () => { vi.runAllTimers() })
+    act(() => { screen.getByText('next').click() }) // seekTo(9999) trick
+    act(() => { mockPlayer._fire(0) })              // ENDED — auto-advance fires
 
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
   })
@@ -169,8 +169,9 @@ describe('PlayerContext — auto-play', () => {
 
 describe('PlayerContext — deferred loadTrack in gesture handlers', () => {
   /**
-   * When getDuration() returns 0 (no track loaded), next/prev fall back to
-   * the deferred loadTrack path. playQueue and jumpTo always use this path.
+   * When ytState is not PLAYING/PAUSED/BUFFERING (no track currently loaded),
+   * next/prev fall back to the deferred loadTrack path. playQueue and jumpTo
+   * always use this path.
    */
 
   it('playQueue defers loadVideoById — requires timer flush', async () => {
@@ -187,13 +188,14 @@ describe('PlayerContext — deferred loadTrack in gesture handlers', () => {
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
   })
 
-  it('next() defers loadVideoById for the next track when no duration available', async () => {
+  it('next() defers loadVideoById for the next track when no track is loaded (ytState UNSTARTED)', async () => {
     renderWithProvider()
     await initPlayer()
 
+    // playQueue advances index but ytState stays UNSTARTED (no _fire(1))
     act(() => { screen.getByText('playQueue').click() })
     await act(async () => { vi.runAllTimers() })
-    act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
+    // ytState = UNSTARTED — next() uses deferred fallback
 
     mockPlayer.loadVideoById.mockClear()
     act(() => { screen.getByText('next').click() })
@@ -204,15 +206,16 @@ describe('PlayerContext — deferred loadTrack in gesture handlers', () => {
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
   })
 
-  it('prev() defers loadVideoById for the previous track when no duration available', async () => {
+  it('prev() defers loadVideoById for the previous track when no track is loaded (ytState UNSTARTED)', async () => {
     renderWithProvider()
     await initPlayer()
 
+    // Advance to TRACK_B via fallback (UNSTARTED → deferred), ytState stays UNSTARTED
     act(() => { screen.getByText('playQueue').click() })
     await act(async () => { vi.runAllTimers() })
-    act(() => { screen.getByText('next').click() }) // advance to TRACK_B
+    act(() => { screen.getByText('next').click() }) // fallback since UNSTARTED
     await act(async () => { vi.runAllTimers() })
-    act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_B
+    // ytState = UNSTARTED — prev() uses deferred fallback
 
     mockPlayer.loadVideoById.mockClear()
     act(() => { screen.getByText('prev').click() })
@@ -243,14 +246,14 @@ describe('PlayerContext — deferred loadTrack in gesture handlers', () => {
 
 describe('PlayerContext — seekTo trick for next/prev', () => {
   /**
-   * When a track is loaded (getDuration() > 0), next() and prev() seek the
-   * current track to its end instead of calling loadVideoById directly.
-   * The resulting natural ENDED event triggers auto-advance, which is the
-   * only path that reliably autoplays on iOS. pendingNextRef stores the
+   * When ytState is PLAYING/PAUSED/BUFFERING (a track is loaded), next() and
+   * prev() seek the current track to position 9999s instead of calling
+   * loadVideoById. This forces a natural ENDED event which triggers auto-advance
+   * — the only path that reliably autoplays on iOS. pendingNextRef stores the
    * intended target so auto-advance loads the right track.
    */
 
-  it('next() calls seekTo(duration) and play() instead of loadVideoById when track is loaded', async () => {
+  it('next() calls seekTo(9999) and play() instead of loadVideoById when track is loaded', async () => {
     renderWithProvider()
     await initPlayer()
 
@@ -258,14 +261,12 @@ describe('PlayerContext — seekTo trick for next/prev', () => {
     await act(async () => { vi.runAllTimers() })
     act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
 
-    // Simulate a loaded track with known duration
-    mockPlayer.getDuration.mockReturnValue(180)
     mockPlayer.loadVideoById.mockClear()
     mockPlayer.seekTo.mockClear()
 
     act(() => { screen.getByText('next').click() })
 
-    expect(mockPlayer.seekTo).toHaveBeenCalledWith(180, true)
+    expect(mockPlayer.seekTo).toHaveBeenCalledWith(9999, true)
     expect(mockPlayer.playVideo).toHaveBeenCalled()
     expect(mockPlayer.loadVideoById).not.toHaveBeenCalled()
   })
@@ -278,10 +279,9 @@ describe('PlayerContext — seekTo trick for next/prev', () => {
     await act(async () => { vi.runAllTimers() })
     act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
 
-    mockPlayer.getDuration.mockReturnValue(180)
     mockPlayer.loadVideoById.mockClear()
 
-    act(() => { screen.getByText('next').click() }) // seekTo trick
+    act(() => { screen.getByText('next').click() }) // seekTo(9999) trick
     act(() => { mockPlayer._fire(0) })              // ENDED fires naturally
 
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
@@ -293,15 +293,14 @@ describe('PlayerContext — seekTo trick for next/prev', () => {
 
     act(() => { screen.getByText('playQueue').click() })
     await act(async () => { vi.runAllTimers() })
-    // Use fallback (getDuration=0) to advance to TRACK_B
+    // Use fallback (UNSTARTED → deferred) to advance to TRACK_B
     act(() => { screen.getByText('next').click() })
     await act(async () => { vi.runAllTimers() })
     act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_B
 
-    mockPlayer.getDuration.mockReturnValue(240)
     mockPlayer.loadVideoById.mockClear()
 
-    act(() => { screen.getByText('prev').click() }) // seekTo trick
+    act(() => { screen.getByText('prev').click() }) // seekTo(9999) trick
     act(() => { mockPlayer._fire(0) })              // ENDED fires naturally
 
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)

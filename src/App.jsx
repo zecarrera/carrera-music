@@ -85,12 +85,11 @@ export default function App() {
     <AuthProvider>
       <PlaylistProvider>
         <PlayerProvider>
-          {/* Hidden YT player mount point — lives outside AppShell so it is always
-              in the DOM before the YouTube IFrame API fires onYouTubeIframeAPIReady.
-              AppShell shows <SplashScreen /> during auth, which would hide this div
-              and cause the one-time API callback to fire against a missing element,
-              silently breaking the player for the entire session. */}
-          <div id="yt-player-mount" style={{ display: 'none' }} />
+          {/* YT player mount — positioned off-screen but in the visible layout.
+              display:none and 0×0 both prevent iOS from granting audio session
+              permissions to the cross-origin iframe; a real layout presence may
+              allow the allow="autoplay" attribute to take effect. */}
+          <div id="yt-player-mount" style={{ position: 'fixed', width: '1px', height: '1px', bottom: 0, right: 0, opacity: 0, pointerEvents: 'none' }} />
           <AppShell />
         </PlayerProvider>
       </PlaylistProvider>

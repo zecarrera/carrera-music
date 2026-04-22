@@ -63,21 +63,26 @@ export function PlayerProvider({ children }) {
   // handleNext / handlePrev use the seekTo trick: seek current track to its end so
   // iOS fires a natural ENDED event. The auto-advance effect (which already works
   // reliably on iOS) then loads the intended next/prev track via pendingNextRef.
-  // Falls back to direct loadTrack when no track is loaded (getDuration() === 0).
+  // Guards on ytState so we only attempt seekTo when a track is actually loaded.
+  // Seeks to 9999s (well past any video's end) so we don't depend on getDuration()
+  // which returns 0 on iOS until video metadata fully loads.
+  // Falls back to direct loadTrack when nothing is playing.
   const handleNext = useCallback(() => {
     const next = state.queueIndex + 1
     if (next < state.queue.length) {
-      const duration = getDuration()
-      if (duration > 0) {
+      const isLoaded = state.ytState === YT_STATE.PLAYING
+        || state.ytState === YT_STATE.PAUSED
+        || state.ytState === YT_STATE.BUFFERING
+      if (isLoaded) {
         pendingNextRef.current = { videoId: state.queue[next].id, index: next }
-        play()          // ensure PLAYING so seekTo triggers ENDED
-        seekTo(duration)
+        play()
+        seekTo(9999)
       } else {
         dispatch({ type: 'SET_INDEX', index: next })
         setTimeout(() => loadTrack(state.queue[next].id), 0)
       }
     }
-  }, [state.queueIndex, state.queue, loadTrack, seekTo, getDuration, play])
+  }, [state.queueIndex, state.queue, state.ytState, loadTrack, seekTo, play])
 
   const jumpTo = useCallback((index) => {
     const idx = Math.max(0, Math.min(index, state.queue.length - 1))
@@ -130,17 +135,19 @@ export function PlayerProvider({ children }) {
   const handlePrev = useCallback(() => {
     const prev = state.queueIndex - 1
     if (prev >= 0) {
-      const duration = getDuration()
-      if (duration > 0) {
+      const isLoaded = state.ytState === YT_STATE.PLAYING
+        || state.ytState === YT_STATE.PAUSED
+        || state.ytState === YT_STATE.BUFFERING
+      if (isLoaded) {
         pendingNextRef.current = { videoId: state.queue[prev].id, index: prev }
         play()
-        seekTo(duration)
+        seekTo(9999)
       } else {
         dispatch({ type: 'SET_INDEX', index: prev })
         setTimeout(() => loadTrack(state.queue[prev].id), 0)
       }
     }
-  }, [state.queueIndex, state.queue, loadTrack, seekTo, getDuration, play])
+  }, [state.queueIndex, state.queue, state.ytState, loadTrack, seekTo, play])
 
   const isPlaying = state.ytState === YT_STATE.PLAYING || state.ytState === YT_STATE.BUFFERING
 
