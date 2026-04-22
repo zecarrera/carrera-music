@@ -107,6 +107,7 @@ describe('PlayerContext — auto-play', () => {
     await initPlayer()
 
     act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
 
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
   })
@@ -116,6 +117,7 @@ describe('PlayerContext — auto-play', () => {
     await initPlayer()
 
     act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
 
     mockPlayer.playVideo.mockClear()
@@ -132,10 +134,12 @@ describe('PlayerContext — auto-play', () => {
     await initPlayer()
 
     act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
     act(() => { mockPlayer._fire(1) }) // PLAYING — track A playing
 
     mockPlayer.loadVideoById.mockClear()
     act(() => { screen.getByText('next').click() })
+    await act(async () => { vi.runAllTimers() })
 
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
   })
@@ -145,6 +149,7 @@ describe('PlayerContext — auto-play', () => {
     await initPlayer()
 
     act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
     act(() => { mockPlayer._fire(3) }) // BUFFERING
     act(() => { mockPlayer._fire(1) }) // PLAYING
 
@@ -158,65 +163,80 @@ describe('PlayerContext — auto-play', () => {
   })
 })
 
-describe('PlayerContext — synchronous loadTrack in gesture handlers', () => {
+describe('PlayerContext — deferred loadTrack in gesture handlers', () => {
   /**
-   * On iOS Safari, loadVideoById() only autoplay-starts if called synchronously
-   * within a user gesture handler. React's useEffect runs asynchronously (after
-   * paint), breaking the gesture chain. These tests verify that each user-facing
-   * action calls loadVideoById BEFORE any async work (no timer flush needed).
+   * Gesture handlers now defer loadTrack to setTimeout(0) so loadVideoById
+   * reaches the iframe WITHOUT user-gesture propagation. When sent with a
+   * gesture, iOS consumes the activation on the video-load operation, leaving
+   * none for autoplay. Running asynchronously (like the ENDED auto-advance path
+   * that always works) lets the existing audio session carry autoplay via
+   * the autoplay:1 playerVar.
    */
 
-  it('playQueue calls loadVideoById synchronously — no timer flush required', async () => {
+  it('playQueue defers loadVideoById — requires timer flush', async () => {
     renderWithProvider()
     await initPlayer()
 
-    // Do NOT flush timers after the click — if loadVideoById fires, it was synchronous
     act(() => { screen.getByText('playQueue').click() })
 
-    // Must be called immediately, without needing vi.runAllTimers()
+    // loadVideoById must NOT fire synchronously (deferred to setTimeout)
+    expect(mockPlayer.loadVideoById).not.toHaveBeenCalled()
+
+    // After flushing timers it fires with the correct video id
+    await act(async () => { vi.runAllTimers() })
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
   })
 
-  it('next() calls loadVideoById for the next track synchronously', async () => {
+  it('next() defers loadVideoById for the next track', async () => {
     renderWithProvider()
     await initPlayer()
 
     act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
     act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
 
     mockPlayer.loadVideoById.mockClear()
-
     act(() => { screen.getByText('next').click() })
 
+    expect(mockPlayer.loadVideoById).not.toHaveBeenCalled()
+
+    await act(async () => { vi.runAllTimers() })
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_B.id)
   })
 
-  it('prev() calls loadVideoById for the previous track synchronously', async () => {
+  it('prev() defers loadVideoById for the previous track', async () => {
     renderWithProvider()
     await initPlayer()
 
     act(() => { screen.getByText('playQueue').click() })
+    await act(async () => { vi.runAllTimers() })
     act(() => { screen.getByText('next').click() }) // advance to TRACK_B
+    await act(async () => { vi.runAllTimers() })
     act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_B
 
     mockPlayer.loadVideoById.mockClear()
-
     act(() => { screen.getByText('prev').click() })
 
+    expect(mockPlayer.loadVideoById).not.toHaveBeenCalled()
+
+    await act(async () => { vi.runAllTimers() })
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_A.id)
   })
 
-  it('jumpTo() calls loadVideoById for the target track synchronously', async () => {
+  it('jumpTo() defers loadVideoById for the target track', async () => {
     renderWithProvider()
     await initPlayer()
 
     act(() => { screen.getByText('playQueue3').click() }) // 3-track queue
+    await act(async () => { vi.runAllTimers() })
     act(() => { mockPlayer._fire(1) }) // PLAYING at TRACK_A
 
     mockPlayer.loadVideoById.mockClear()
-
     act(() => { screen.getByText('jumpTo2').click() }) // jump to index 2 (TRACK_C)
 
+    expect(mockPlayer.loadVideoById).not.toHaveBeenCalled()
+
+    await act(async () => { vi.runAllTimers() })
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith(TRACK_C.id)
   })
 })

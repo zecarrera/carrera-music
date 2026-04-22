@@ -23,11 +23,12 @@ function loadYouTubeApi() {
  * immediately before calling new YT.Player() so allow is set on the iframe
  * element before its src is assigned and the browser starts navigation.
  *
- * Auto-play recovery: loadTrack() sets a `wantToPlay` flag. If the player
- * enters PAUSED (2) or VIDEO_CUED (5) state while the flag is set (iOS
- * autoplay blocked — which state it produces depends on iOS version and
- * buffering speed), playVideo() is retried immediately. The flag is cleared
- * when the player reaches PLAYING, or when pause() is called explicitly.
+ * Auto-play strategy: callers defer loadTrack() via setTimeout(0) so that
+ * loadVideoById() reaches the iframe WITHOUT user-gesture propagation. This
+ * mirrors auto-advance (which fires from a useEffect and always autoplays),
+ * letting iOS's autoplay:1 playerVar reuse the established audio session.
+ * The wantToPlay flag + onStateChange recovery handles PAUSED/VIDEO_CUED
+ * fallbacks (e.g. first-ever track where no audio session exists yet).
  */
 export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
   const playerRef = useRef(null)
@@ -120,13 +121,10 @@ export function useYouTubePlayer({ containerId, onStateChange, onReady }) {
     wantToPlayRef.current = true
     if (readyRef.current && playerRef.current) {
       playerRef.current.loadVideoById(videoId)
-      // Immediately call playVideo() while still in the user gesture chain.
-      // iOS Safari expires user activation after ~1 second; loadVideoById buffers
-      // the video (takes longer), so the iframe's internal autoplay attempt fires
-      // after activation expires and is blocked. Queuing playVideo() synchronously
-      // here — before activation expires — gives the iframe a play intent that it
-      // can honour when buffering completes, without needing a fresh gesture.
-      playerRef.current.playVideo()
+      // No explicit playVideo() call here — callers defer loadTrack to
+      // setTimeout(0) so loadVideoById reaches the iframe without user-gesture
+      // propagation, mirroring the auto-advance (ENDED) path that iOS allows
+      // to autoplay via the autoplay:1 playerVar using the existing audio session.
     } else {
       pendingVideoRef.current = videoId
     }

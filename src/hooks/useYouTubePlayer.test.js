@@ -116,10 +116,10 @@ describe('useYouTubePlayer', () => {
 
     act(() => { result.current.loadTrack('dQw4w9WgXcQ') })
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith('dQw4w9WgXcQ')
-    // loadTrack now calls playVideo() immediately (iOS gesture chain preservation)
-    // plus play() below — total 2 calls
+    // loadTrack no longer calls playVideo() immediately — callers defer it
+    // via setTimeout(0). play() is the only explicit playVideo call here.
     act(() => { result.current.play() })
-    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(2)
+    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(1)
   })
 
   it('queues a pending track and loads it when player becomes ready', async () => {
@@ -165,7 +165,7 @@ describe('useYouTubePlayer', () => {
    * The fix: when the player transitions to PAUSED right after loadTrack() was
    * called (wantToPlayRef is true), immediately retry playVideo().
    */
-  it('calls playVideo immediately on loadTrack (iOS gesture chain preservation)', async () => {
+  it('loadTrack calls loadVideoById without an immediate playVideo (callers handle timing)', async () => {
     addMountPoint()
     const mockPlayer = installYTMock(/* requireElement */ true)
 
@@ -178,14 +178,16 @@ describe('useYouTubePlayer', () => {
 
     mockPlayer.playVideo.mockClear()
 
-    // loadTrack must call both loadVideoById AND playVideo synchronously —
-    // both postMessages sent during the user gesture before activation expires.
+    // loadTrack only calls loadVideoById — playVideo is NOT called immediately.
+    // Callers (PlayerContext gesture handlers) defer loadTrack via setTimeout(0)
+    // so loadVideoById reaches the iframe without gesture propagation, matching
+    // the auto-advance (ENDED) path that iOS allows to autoplay.
     act(() => { result.current.loadTrack('dQw4w9WgXcQ') })
     expect(mockPlayer.loadVideoById).toHaveBeenCalledWith('dQw4w9WgXcQ')
-    expect(mockPlayer.playVideo).toHaveBeenCalledOnce()
+    expect(mockPlayer.playVideo).not.toHaveBeenCalled()
   })
 
-  it('calls playVideo on PAUSED recovery AND on initial loadTrack (iOS autoplay recovery)', async () => {
+  it('calls playVideo on PAUSED recovery (no immediate playVideo in loadTrack)', async () => {
     addMountPoint()
     const mockPlayer = installYTMock(/* requireElement */ true)
 
@@ -199,15 +201,15 @@ describe('useYouTubePlayer', () => {
     mockPlayer.playVideo.mockClear()
 
     act(() => { result.current.loadTrack('dQw4w9WgXcQ') })
-    // 1st call: immediate playVideo in loadTrack (gesture chain)
-    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(1)
+    // loadTrack no longer calls playVideo immediately
+    expect(mockPlayer.playVideo).not.toHaveBeenCalled()
 
     // iOS flow: video loads but autoplay is still blocked
     act(() => { mockPlayer._fireStateChange(3) }) // BUFFERING
     act(() => { mockPlayer._fireStateChange(2) }) // PAUSED (iOS blocked autoplay)
 
-    // 2nd call: PAUSED recovery
-    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(2)
+    // Recovery fires on PAUSED
+    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(1)
   })
 
   it('calls playVideo on VIDEO_CUED (5) recovery — iOS may use this state instead of PAUSED', async () => {
@@ -224,13 +226,13 @@ describe('useYouTubePlayer', () => {
     mockPlayer.playVideo.mockClear()
 
     act(() => { result.current.loadTrack('dQw4w9WgXcQ') })
-    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(1)
+    expect(mockPlayer.playVideo).not.toHaveBeenCalled()
 
     act(() => { mockPlayer._fireStateChange(3) })  // BUFFERING
     act(() => { mockPlayer._fireStateChange(5) })  // VIDEO_CUED (iOS blocked autoplay)
 
-    // Recovery must also fire on VIDEO_CUED
-    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(2)
+    // Recovery must fire on VIDEO_CUED
+    expect(mockPlayer.playVideo).toHaveBeenCalledTimes(1)
   })
 
   it('does NOT retry playVideo when user explicitly pauses', async () => {

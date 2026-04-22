@@ -43,26 +43,36 @@ export function PlayerProvider({ children }) {
   const { loadTrack, play, pause, seekTo, getCurrentTime, getDuration } =
     useYouTubePlayer({ containerId: 'yt-player-mount', onStateChange: handleStateChange })
 
-  // Call loadTrack synchronously inside each user-gesture handler so iOS Safari
-  // keeps the gesture chain intact (useEffect runs async, breaking iOS autoplay).
+  // Gesture handlers defer loadTrack to setTimeout(0) so loadVideoById reaches
+  // the iframe WITHOUT user-gesture propagation. When loadVideoById arrives with
+  // gesture activation, iOS consumes it on the video load, leaving nothing for
+  // autoplay. Running outside the gesture chain (like auto-advance from ENDED)
+  // lets the existing audio session carry autoplay via the autoplay:1 playerVar.
   const playQueue = useCallback((queue, index = 0) => {
     const idx = index ?? 0
-    if (queue[idx]) loadTrack(queue[idx].id)
     dispatch({ type: 'PLAY_QUEUE', queue, index: idx })
+    if (queue[idx]) {
+      const videoId = queue[idx].id
+      setTimeout(() => loadTrack(videoId), 0)
+    }
   }, [loadTrack])
 
   const handleNext = useCallback(() => {
     const next = state.queueIndex + 1
     if (next < state.queue.length) {
-      loadTrack(state.queue[next].id)
+      const videoId = state.queue[next].id
       dispatch({ type: 'SET_INDEX', index: next })
+      setTimeout(() => loadTrack(videoId), 0)
     }
   }, [state.queueIndex, state.queue, loadTrack])
 
   const jumpTo = useCallback((index) => {
     const idx = Math.max(0, Math.min(index, state.queue.length - 1))
-    if (state.queue[idx]) loadTrack(state.queue[idx].id)
-    dispatch({ type: 'SET_INDEX', index: idx })
+    if (state.queue[idx]) {
+      const videoId = state.queue[idx].id
+      dispatch({ type: 'SET_INDEX', index: idx })
+      setTimeout(() => loadTrack(videoId), 0)
+    }
   }, [state.queue, loadTrack])
 
   const toggleRepeat = useCallback(() => {
@@ -95,8 +105,9 @@ export function PlayerProvider({ children }) {
   const handlePrev = useCallback(() => {
     const prev = state.queueIndex - 1
     if (prev >= 0) {
-      loadTrack(state.queue[prev].id)
+      const videoId = state.queue[prev].id
       dispatch({ type: 'SET_INDEX', index: prev })
+      setTimeout(() => loadTrack(videoId), 0)
     }
   }, [state.queueIndex, state.queue, loadTrack])
 
