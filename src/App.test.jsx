@@ -2,13 +2,15 @@
  * Tests that the YouTube player mount point is always present in the DOM,
  * even while Supabase auth is loading (showing the splash screen).
  *
- * Bug: `div#yt-player-mount` was inside AppShell behind `if (loading) return <SplashScreen />`.
+ * Bug: `iframe#yt-player-mount` was inside AppShell behind `if (loading) return <SplashScreen />`.
  * The YouTube IFrame API can fire `onYouTubeIframeAPIReady` before auth completes.
  * When it does, `initPlayer()` fails silently (element doesn't exist), `readyRef`
  * stays false, and the player is never created. All subsequent play() calls are no-ops.
  *
- * Fix: move `div#yt-player-mount` outside AppShell into App(), directly inside
- * PlayerProvider, so it is in the DOM from the very first render.
+ * Fix: render `iframe#yt-player-mount` outside AppShell directly inside App(), so
+ * it is in the DOM from the very first render. The iframe carries allow="autoplay;
+ * encrypted-media" set by React at mount time — before the YouTube IFrame API sets
+ * the src — so iOS Safari grants the iframe autoplay permission at navigation time.
  */
 import { describe, it, expect, vi } from 'vitest'
 import { render } from '@testing-library/react'
@@ -52,17 +54,21 @@ describe('App — player mount point', () => {
   })
 
   /**
-   * REGRESSION [iOS autoplay]: iOS Safari evaluates the `allow` attribute on an
-   * iframe at navigation time (when the iframe src is loaded). Setting it via
-   * setAttribute() after the fact (e.g. in onReady) has no effect. The YouTube
-   * IFrame API creates the player <iframe> dynamically inside the div container —
-   * we intercept document.createElement in initPlayer() to set allow="autoplay"
-   * on the element before its src is assigned and the browser starts navigation.
-   * This is verified in useYouTubePlayer.test.js.
+   * REGRESSION [iOS autoplay]: iOS Safari evaluates allow="autoplay" on an
+   * iframe at navigation time (when its src is set). The YouTube IFrame API
+   * creates the player iframe asynchronously — after the YT.Player() constructor
+   * returns — so intercepting document.createElement is unreliable (the intercept
+   * is restored before the real API creates its iframe).
+   *
+   * Fix: pre-render the <iframe> in JSX with allow="autoplay; encrypted-media"
+   * already set. React guarantees the attribute is present at mount time, before
+   * any JS runs, so when the YouTube IFrame API sets the iframe src the attribute
+   * is already there and iOS evaluates it correctly.
    */
-  it('renders yt-player-mount as a div (YT API creates inner iframe with allow via createElement intercept)', () => {
+  it('renders yt-player-mount as an <iframe> with allow="autoplay" (pre-rendered for iOS autoplay)', () => {
     render(<App />)
     const el = document.getElementById('yt-player-mount')
-    expect(el?.tagName.toLowerCase()).toBe('div')
+    expect(el?.tagName.toLowerCase()).toBe('iframe')
+    expect(el?.getAttribute('allow')).toMatch(/autoplay/)
   })
 })
