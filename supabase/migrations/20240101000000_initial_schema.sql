@@ -23,6 +23,12 @@ create table if not exists playlist_tracks (
 create index if not exists playlists_user_id_idx on playlists(user_id);
 create index if not exists playlist_tracks_playlist_position_idx on playlist_tracks(playlist_id, position);
 
+-- Explicit grants required for new Supabase projects (public schema no longer
+-- exposed by default from May 30, 2026 for new projects).
+grant usage on schema public to anon, authenticated;
+grant all on table public.playlists to authenticated;
+grant all on table public.playlist_tracks to authenticated;
+
 -- Row-Level Security: users can only access their own data
 alter table playlists enable row level security;
 alter table playlist_tracks enable row level security;

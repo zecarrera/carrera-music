@@ -107,6 +107,8 @@ supabase db push                     # apply all pending migrations
 
 Also enable **Anonymous sign-in** under Authentication → Configuration → Providers.
 
+> **Note (new projects after May 30, 2026):** Supabase no longer exposes `public` schema tables to the Data API by default on new projects. The migration already includes explicit `GRANT` statements for this, so `supabase db push` handles it automatically.
+
 #### GitHub Actions secrets required for automatic migrations
 
 | Secret | Where to find it |
