@@ -123,3 +123,47 @@ iOS Safari only keeps audio playing when the screen is locked if it is driven by
 ### MVP Decision
 
 Lock-screen limitation is **accepted for the MVP** (Phase B/C) and will be revisited in Phase E when SoundCloud integration is evaluated. The provider abstraction layer built in Phase C will allow swapping or layering sources without rewriting player and playlist logic.
+
+---
+
+## Phase D Spike: Additional Approaches Investigated
+
+### Silent `<audio>` keep-alive — CLOSED ❌
+
+The Phase B recommendation suggested evaluating a silent looping `<audio>` element to maintain the iOS audio session while the YouTube IFrame plays.
+
+**Verdict: Not viable.** Research (2024–2025) confirmed this trick no longer works reliably on iOS. iOS aggressively suspends background JS and audio for both Safari PWAs and home-screen-installed apps. iOS 26 (2025) made this worse — previously working apps lost audio background ability entirely. Open WebKit bug [#291892](https://bugs.webkit.org/show_bug.cgi?id=291892) tracks this; no fix committed. **This approach is formally closed.**
+
+### Capacitor WKWebView + `UIBackgroundModes: audio` — CLOSED for YouTube IFrame ❌
+
+The project already has a Capacitor iOS target (`ios/`). Research into whether enabling the native audio background mode in the Capacitor shell app could unlock YouTube IFrame background playback:
+
+- Adding `UIBackgroundModes: audio` to `Info.plist` and configuring `AVAudioSession.sharedInstance().setCategory(.playback)` in AppDelegate does enable WKWebView background audio — **but only for native `<audio>` / `<video>` elements in the web layer**.
+- YouTube IFrame still pauses on lock/background even with full native audio session configuration. Confirmed by Apple Developer Forums, Stack Overflow, and Ionic/Capacitor community threads (2024).
+- **Root cause:** YouTube's IFrame player controls its own embedded media element; iOS does not propagate the native audio session entitlement into an iframe's browsing context.
+
+**Verdict: Capacitor native audio session config does NOT help while YouTube IFrame is the playback source. However, this config becomes essential once we switch to a native `<audio>` source (SoundCloud) — at that point it unlocks true lock-screen audio in the installed app context.**
+
+### Piped / Invidious (direct YouTube stream URLs) — EXCLUDED (ToS) ❌
+
+Piped and Invidious are open-source YouTube frontend proxies that expose direct audio stream URLs for YouTube videos (e.g. `/api/v1/audio/{videoId}`). Playing these via native `<audio>` would technically achieve lock-screen playback.
+
+**Verdict: Excluded.** Extracting direct streams from YouTube is explicitly prohibited by YouTube's Terms of Service. Using this in a product risks DMCA takedowns, Google blocking API access, and App Store rejection. **This approach must not be pursued.**
+
+### Updated Options Table
+
+| Option | Lock-Screen | Free | YouTube API Used | Status |
+|--------|-------------|------|-----------------|--------|
+| YouTube IFrame API | ❌ | ✅ | ✅ | Current MVP |
+| Silent `<audio>` keep-alive | ❌ | ✅ | ✅ | Closed — broken iOS 2024+ |
+| Capacitor + `UIBackgroundModes: audio` + YouTube IFrame | ❌ | ✅ | ✅ | Closed — IFrame not helped by native audio session |
+| Piped / Invidious proxy | ✅ | ✅ | Via proxy | Excluded — YouTube ToS violation |
+| **YouTube search + SoundCloud `<audio>`** | ✅ | ✅ | ✅ (discovery) | **Recommended — Phase E** |
+| Apple MusicKit JS | ✅ | ❌ (user sub) | ✅ (discovery) | Secondary — Phase E |
+
+### Phase D Conclusion
+
+There is no technically sound, ToS-compliant, free approach that keeps YouTube as the **playback** source and achieves iOS lock-screen audio. The iOS restriction is at the OS/WebKit level and cannot be bypassed from the web layer.
+
+The recommended path remains: **YouTube Data API for search and discovery; SoundCloud API + native `<audio>` for playback; Capacitor native audio session config to support the installed app.** When no SoundCloud match is found, fall back to YouTube IFrame with clear UX indicating lock-screen playback is unavailable for that track.
+
