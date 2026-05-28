@@ -30,6 +30,13 @@ The README is the source of truth for onboarding — keep it accurate.
 - No unnecessary comments — only comment code that genuinely needs clarification
 - Prefer named exports for components
 
+## Branching & pushing
+- **Never push directly to `main`.** Always use a branch.
+- Before committing, check the current branch with `git branch --show-current`.
+  - If already on a feature branch, commit and push to that branch.
+  - If on `main`, create a descriptive branch first (`git checkout -b <branch-name>`), then commit and push to it.
+- Open a PR for review rather than merging directly.
+
 ## Commit messages
 Always include the Co-authored-by trailer:
 ```
